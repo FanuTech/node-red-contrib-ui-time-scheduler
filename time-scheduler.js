@@ -886,21 +886,20 @@ module.exports = function(RED) {
 					done();
 				}
 			});
+		} catch (error) {
+			console.log("TimeSchedulerNode:", error);
 		}
-	} catch (error) {
-		console.log("TimeSchedulerNode:", error);
 	}
-}
-RED.nodes.registerType("ui_time_scheduler", TimeSchedulerNode);
+	RED.nodes.registerType("ui_time_scheduler", TimeSchedulerNode);
 
-let uiPath = ((RED.settings.ui || {}).path);
-if (uiPath == undefined) uiPath = 'ui';
-let nodePath = '/' + uiPath + '/time-scheduler/getNode/:nodeId';
-nodePath = nodePath.replace(/\/+/g, '/');
+	let uiPath = ((RED.settings.ui || {}).path);
+	if (uiPath == undefined) uiPath = 'ui';
+	let nodePath = '/' + uiPath + '/time-scheduler/getNode/:nodeId';
+	nodePath = nodePath.replace(/\/+/g, '/');
 
-RED.httpNode.get(nodePath, function(req, res) {
-	const nodeId = req.params.nodeId;
-	const node = RED.nodes.getNode(nodeId);
-	node ? node.nodeCallback(req, res) : res.send(404).end();
-});
+	RED.httpNode.get(nodePath, function(req, res) {
+		const nodeId = req.params.nodeId;
+		const node = RED.nodes.getNode(nodeId);
+		node ? node.nodeCallback(req, res) : res.send(404).end();
+	});
 }

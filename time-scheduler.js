@@ -186,164 +186,167 @@ module.exports = function(RED) {
 						<div layout="row" layout-align="space-between none" style="max-height: 60px;">
 							<md-input-container flex="50" ng-show="formtimer.starttype === 'custom'" style="margin-left: 0">
 								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler.ui.starttime")}</label>
-								<input id="timerStarttime-${uniqueId}" type="time" style="color: var(--nr-dashboard-widgetTextColor)" required>
+								<input id="timerStarttime-${uniqueId}" value="08:00" type="time" required pattern="^([0-1][0-9]|2[0-3]):([0-5][0-9])$">
+								<span class="validity"></span>
 							</md-input-container>
-							<md-input-container flex="50" ng-show="formtimer.starttype !== 'custom'" style="margin-left: 0">
-								<span style="color: var(--nr-dashboard-widgetTextColor)">{{formtimer.startLabel}}</span>
-								<input type="number" ng-model="formtimer.startOffset" ng-change="updateSolarLabels()" style="color: var(--nr-dashboard-widgetTextColor); width: 50%;">
-								<span style="color: var(--nr-dashboard-widgetTextColor)"> ${RED._("time-scheduler.ui.minutes")}</span>
+							<md-input-container flex="50" ng-if="formtimer.starttype !== 'custom'" style="margin-left: 0">
+								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler.ui.starttime")}</label>
+								<input ng-model="formtimer.solarStarttimeLabel" type="text" required disabled>
+								<span class="validity"></span>
 							</md-input-container>
-							<md-input-container flex="50" ng-show="formtimer.endtype === 'custom' && !eventMode">
+							${config.eventMode ? `
+							<md-input-container flex="">
+								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler.ui.event")}</label>
+								${config.customPayload ? `
+								<input ng-model="formtimer.timerEvent" required autocomplete="off">
+								` : `
+								<md-select class="nr-dashboard-dropdown" ng-model="formtimer.timerEvent" required>
+									<md-option ng-repeat="option in eventOptions" value={{option.event}}> {{option.label}} </md-option>
+								</md-select>
+								`}
+							</md-input-container>
+							` : `
+							<md-input-container flex="50" ng-show="formtimer.endtype === 'custom'">
 								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler.ui.endtime")}</label>
-								<input id="timerEndtime-${uniqueId}" type="time" style="color: var(--nr-dashboard-widgetTextColor)" required>
+								<input id="timerEndtime-${uniqueId}" value="10:00" type="time" required pattern="^([0-1][0-9]|2[0-3]):([0-5][0-9])$">
+								<span class="validity"></span>
 							</md-input-container>
-							<md-input-container flex="50" ng-show="formtimer.endtype !== 'custom' && !eventMode">
-								<span style="color: var(--nr-dashboard-widgetTextColor)">{{formtimer.endLabel}}</span>
-								<input type="number" ng-model="formtimer.endOffset" ng-change="updateSolarLabels()" style="color: var(--nr-dashboard-widgetTextColor); width: 50%;">
-								<span style="color: var(--nr-dashboard-widgetTextColor)"> ${RED._("time-scheduler.ui.minutes")}</span>
+							<md-input-container flex="50" ng-if="formtimer.endtype !== 'custom'">
+								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler.ui.endtime")}</label>
+								<input ng-model="formtimer.solarEndtimeLabel" type="text" required disabled> </input>
+								<span class="validity"></span>
 							</md-input-container>
-							<md-input-container flex="50" ng-show="eventMode">
-								<md-select class="nr-dashboard-dropdown" ng-model="formtimer.timerEvent" aria-label="Event" style="color: var(--nr-dashboard-widgetTextColor)">
-									<md-option ng-repeat="option in eventOptions" value="{{option.event}}"> {{option.label}} </md-option>
+							`}
+						</div>
+						<div layout="row" style="max-height: 50px;">
+							<md-input-container>
+								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler.ui.daysActive")}</label>
+								<md-select class="nr-dashboard-dropdown" multiple="true" placeholder="${RED._("time-scheduler.ui.daysActive")}" ng-model="formtimer.dayselect" ng-change="daysChanged()" >
+									<md-option value="all"><em>${RED._("time-scheduler.ui.selectAll")}</em></md-option>
+									<md-option ng-repeat="day in days | limitTo : ${config.startDay}-7" ng-init="$index=$index+${config.startDay}" value={{$index}}> {{days[$index]}} </md-option>
+									<md-option ng-repeat="day in days | limitTo : -${config.startDay}" value={{$index}}> {{days[$index]}} </md-option>
 								</md-select>
 							</md-input-container>
 						</div>
-						<div layout="row" layout-align="space-around center" style="max-height: 60px">
-							<md-checkbox ng-repeat="day in days | limitTo : ${config.startDay}-7" ng-init="dayIndex=$index+${config.startDay}" ng-model="formtimer.dayselect" ng-checked="formtimer.dayselect.indexOf(dayIndex) > -1" ng-true-value="{{dayIndex}}" ng-change="daysChanged()" flex="" aria-label="{{days[dayIndex]}}">
-								{{days[dayIndex]}}
-							</md-checkbox>
-							<md-checkbox ng-repeat="day in days | limitTo : -${config.startDay}" ng-init="dayIndex=$index" ng-model="formtimer.dayselect" ng-checked="formtimer.dayselect.indexOf(dayIndex) > -1" ng-true-value="{{dayIndex}}" ng-change="daysChanged()" flex="" aria-label="{{days[dayIndex]}}">
-								{{days[dayIndex]}}
-							</md-checkbox>
-							<md-checkbox ng-model="formtimer.dayselect" ng-checked="formtimer.dayselect.length == 7" ng-true-value="all" ng-change="daysChanged()" flex="" aria-label="${RED._("time-scheduler.ui.all")}">
-								${RED._("time-scheduler.ui.all")}
-							</md-checkbox>
+						<div layout="row" layout-align="space-between end" style="height: 40px;">
+							<md-button style="margin: 1px;" ng-if="formtimer.index !== undefined" ng-click="deleteTimer()"> <md-icon> delete </md-icon> </md-button>
+							<md-button style="margin: 1px;" ng-if="formtimer.index !== undefined" ng-click="formtimer.disabled=!formtimer.disabled">
+								<md-icon> {{formtimer.disabled ? "alarm_off" : "alarm_on"}} </md-icon>
+							</md-button>
+							<span ng-if="formtimer.index === undefined" style="width: 40px;"></span> <span ng-if="formtimer.index === undefined" style="width: 40px;"></span>
+							${config.solarEventsEnabled ? `<md-button style="margin: 1px;" aria-label="suntimer" ng-click="showSunSettings=!showSunSettings"> <md-icon> wb_sunny </md-icon> </md-button>` : ``}
+							<md-button style="margin: 1px" type="submit"> <md-icon> done </md-icon> </md-button>
 						</div>
 					</div>
-					<div ng-show="showSunSettings" style="padding: 0 9px;">
-						<div layout="row" layout-align="space-around none" style="max-height: 62px; padding-top: 12px;">
-							<label style="font-weight: 500; color: var(--nr-dashboard-widgetTextColor); font-size: 15px; line-height: 23px;"> ${RED._("time-scheduler.ui.starttime")} </label>
-							<md-button ng-repeat="option in sunOptions" ng-class="{sunSelected: formtimer.starttype === option}" ng-click="formtimer.starttype = option; updateSolarLabels();" class="sunButton" aria-label="{{option}}">
-								{{option}}
-							</md-button>
+					<div ng-show="showSunSettings">
+						<div layout="row" style="height: 50px;">
+							<md-input-container flex="55">
+								<label style="color: var(--nr-dashboard-widgetTextColor)">Starttype</label>
+								<md-select class="nr-dashboard-dropdown" ng-model="formtimer.starttype" ng-change="updateSolarLabels()">
+									<md-option value="custom" selected> ${RED._("time-scheduler.ui.custom")} </md-option>
+									<md-option value="sunrise"> ${RED._("time-scheduler.ui.sunrise")} </md-option>
+									<md-option value="sunriseEnd"> ${RED._("time-scheduler.ui.sunriseEnd")} </md-option>
+									<md-option value="goldenHourEnd"> ${RED._("time-scheduler.ui.goldenHourEnd")} </md-option>
+									<md-option value="solarNoon"> ${RED._("time-scheduler.ui.solarNoon")} </md-option>
+									<md-option value="goldenHour"> ${RED._("time-scheduler.ui.goldenHour")} </md-option>
+									<md-option value="sunsetStart"> ${RED._("time-scheduler.ui.sunsetStart")} </md-option>
+									<md-option value="sunset"> ${RED._("time-scheduler.ui.sunset")} </md-option>
+									<md-option value="dusk"> ${RED._("time-scheduler.ui.dusk")} </md-option>
+									<md-option value="nauticalDusk"> ${RED._("time-scheduler.ui.nauticalDusk")} </md-option>
+									<md-option value="night"> ${RED._("time-scheduler.ui.night")} </md-option>
+									<md-option value="nadir"> ${RED._("time-scheduler.ui.nadir")} </md-option>
+									<md-option value="nightEnd"> ${RED._("time-scheduler.ui.nightEnd")} </md-option>
+									<md-option value="nauticalDawn"> ${RED._("time-scheduler.ui.nauticalDawn")} </md-option>
+									<md-option value="dawn"> ${RED._("time-scheduler.ui.dawn")} </md-option>
+								</md-select>
+							</md-input-container>
+							<md-input-container flex="" ng-if="formtimer.starttype!='custom'">
+								<label style="color: var(--nr-dashboard-widgetTextColor)">Offset (min)</label>
+								<input type="number" ng-model="formtimer.startOffset" ng-change="offsetValidation('start')">
+							</md-input-container>
 						</div>
-						<div ng-show="!eventMode" layout="row" layout-align="space-around none" style="max-height: 62px; padding-top: 12px;">
-							<label style="font-weight: 500; color: var(--nr-dashboard-widgetTextColor); font-size: 15px; line-height: 23px;"> ${RED._("time-scheduler.ui.endtime")} </label>
-							<md-button ng-repeat="option in sunOptions" ng-class="{sunSelected: formtimer.endtype === option}" ng-click="formtimer.endtype = option; updateSolarLabels();" class="sunButton" aria-label="{{option}}">
-								{{option}}
-							</md-button>
+						<div layout="row" style="height: 50px;">
+							<md-input-container flex="55" ng-if="!${config.eventMode}">
+								<label style="color: var(--nr-dashboard-widgetTextColor)">Endtype</label>
+								<md-select class="nr-dashboard-dropdown" ng-model="formtimer.endtype" ng-change="updateSolarLabels()">
+									<md-option value="custom" selected> ${RED._("time-scheduler.ui.custom")} </md-option>
+									<md-option value="sunrise"> ${RED._("time-scheduler.ui.sunrise")} </md-option>
+									<md-option value="sunriseEnd"> ${RED._("time-scheduler.ui.sunriseEnd")} </md-option>
+									<md-option value="goldenHourEnd"> ${RED._("time-scheduler.ui.goldenHourEnd")} </md-option>
+									<md-option value="solarNoon"> ${RED._("time-scheduler.ui.solarNoon")} </md-option>
+									<md-option value="goldenHour"> ${RED._("time-scheduler.ui.goldenHour")} </md-option>
+									<md-option value="sunsetStart"> ${RED._("time-scheduler.ui.sunsetStart")} </md-option>
+									<md-option value="sunset"> ${RED._("time-scheduler.ui.sunset")} </md-option>
+									<md-option value="dusk"> ${RED._("time-scheduler.ui.dusk")} </md-option>
+									<md-option value="nauticalDusk"> ${RED._("time-scheduler.ui.nauticalDusk")} </md-option>
+									<md-option value="night"> ${RED._("time-scheduler.ui.night")} </md-option>
+									<md-option value="nadir"> ${RED._("time-scheduler.ui.nadir")} </md-option>
+									<md-option value="nightEnd"> ${RED._("time-scheduler.ui.nightEnd")} </md-option>
+									<md-option value="nauticalDawn"> ${RED._("time-scheduler.ui.nauticalDawn")} </md-option>
+									<md-option value="dawn"> ${RED._("time-scheduler.ui.dawn")} </md-option>
+								</md-select>
+							</md-input-container>
+							<md-input-container flex="" ng-if="!${config.eventMode} && formtimer.endtype!='custom'">
+								<label style="color: var(--nr-dashboard-widgetTextColor)">Offset (min)</label>
+								<input type="number" ng-model="formtimer.endOffset" ng-change="offsetValidation('end')">
+							</md-input-container>
 						</div>
-					</div>
-					<div layout="row" layout-align="space-between center" style="padding-top: 12px; max-height: 60px">
-						<md-checkbox ng-model="formtimer.disabled" flex="35" aria-label="Pause">
-							${RED._("time-scheduler.ui.disable")}
-						</md-checkbox>
-						<md-button ng-if="solarEventsEnabled" ng-click="showSunSettings = !showSunSettings" flex="20" style="margin: 0 4px 0 0" aria-label="${RED._("time-scheduler.ui.sun")}">
-							<md-icon>{{showSunSettings ? "schedule" : "wb_sunny"}}</md-icon>
-						</md-button>
-						<md-button type="submit" flex="40" style="margin: 0 4px 0 0" ng-disabled="formtimer.dayselect.length < 1" aria-label="Submit">
-							${RED._("time-scheduler.ui.save")}
-						</md-button>
-						<md-button flex="30" ng-click="deleteTimer()" style="margin: 0" ng-show="formtimer.index !== undefined" aria-label="Delete">
-							${RED._("time-scheduler.ui.delete")}
-						</md-button>
+						<div layout="row" layout-align="space-between end" style="height: 50px;">
+							<md-button style="margin: 1px;" aria-label="suntimer" ng-click="showSunSettings=!showSunSettings"> <md-icon> arrow_back </md-icon> </md-button>
+						</div>
 					</div>
 				</form>
+				<div ng-show="loading" layout="row" layout-align="center center" style="width:100%; position: absolute; z-index:10; opacity: 0.9; height:150px; background-color: var(--nr-dashboard-widgetColor);">
+					<md-progress-circular md-mode="indeterminate"></md-progress-circular>
+				</div>
 			</div>
 		</div>
 		`;
 
-		return styles + timerBody;
+		return String.raw`${styles}${timerBody}`;
+	}
+
+	function checkConfig(config, node) {
+		if (!config) {
+			node.error(RED._("ui_time_scheduler.error.no-config"));
+			return false;
+		}
+		if (!config.hasOwnProperty("group")) {
+			node.error(RED._("ui_time_scheduler.error.no-group"));
+			return false;
+		}
+		return true;
 	}
 
 	function TimeSchedulerNode(config) {
 		try {
-			const node = this;
-			let nodeInterval;
-			let prevMsg;
+			let ui = undefined;
+			if (ui === undefined) {
+				ui = RED.require("node-red-dashboard")(RED);
+			}
 
 			RED.nodes.createNode(this, config);
-			const group = RED.nodes.getNode(config.group);
+			const node = this;
 
-			if (!group) {
-				return;
-			}
+			// START check props
+			if (!config.hasOwnProperty("refresh")) config.refresh = 60;
+			if (!config.hasOwnProperty("startDay")) config.startDay = 0;
+			if (!config.hasOwnProperty("height") || config.height == 0) config.height = 1;
+			if (!config.hasOwnProperty("name") || config.name === "") config.name = "Time-Scheduler";
+			if (!config.hasOwnProperty("devices") || config.devices.length === 0) config.devices = [config.name];
+			if (!config.hasOwnProperty("eventOptions")) config.eventOptions = [{ label: RED._("time-scheduler.label.on"), event: "true" }, { label: RED._("time-scheduler.label.off"), event: "false" }];
+			// END check props
+			config.i18n = RED._("time-scheduler.ui", { returnObjects: true });
+			config.solarEventsEnabled = ((config.lat !== "" && isFinite(config.lat) && Math.abs(config.lat) <= 90) && (config.lon !== "" && isFinite(config.lon) && Math.abs(config.lon) <= 180)) ? true : false;
 
-			const i18n = {
-				days: [RED._("time-scheduler.days.0"), RED._("time-scheduler.days.1"), RED._("time-scheduler.days.2"), RED._("time-scheduler.days.3"), RED._("time-scheduler.days.4"), RED._("time-scheduler.days.5"), RED._("time-scheduler.days.6")],
-				alertTimespan: RED._("time-scheduler.alertTimespan"),
-				alertTimespanDay: RED._("time-scheduler.alertTimespanDay"),
-				nothingPlanned: RED._("time-scheduler.ui.nothingPlanned"),
-				payloadWarning: RED._("time-scheduler.payloadWarning")
-			};
-
-			const solarEventsEnabled = (config.lat && config.lon);
-			config.solarEventsEnabled = solarEventsEnabled;
-			config.i18n = i18n;
-			const html = HTML(config);
-
-			const done = group.register(node, config, html);
-
-			const getStorage = function() {
-				if (config.customContextStore) {
-					return node.context()[config.customContextStore];
-				} else {
-					return node.context();
-				}
-			}
-
-			function getTimers() {
-				let timers = getStorage().get("timers");
-				if (!timers) timers = [];
-				if (solarEventsEnabled) timers = updateSolarEvents(timers);
-				return timers;
-			}
-
-			function setTimers(timers) {
-				getStorage().set("timers", timers);
-			}
-
-			function getSettings() {
-				let settings = getStorage().get("settings");
-				if (!settings) settings = { disabledDevices: [], overviewFilter: "all" };
-				return settings;
-			}
-
-			function setSettings(settings) {
-				getStorage().set("settings", settings);
-			}
-
-			function validateTimers(timers) {
-				if (Array.isArray(timers)) {
-					for (let i = 0; i < timers.length; i++) {
-						if (!timers[i].hasOwnProperty("days") || !timers[i].hasOwnProperty("output")) {
-							return false;
-						}
-
-						if (config.eventMode) {
-							if (!timers[i].hasOwnProperty("starttime") || !timers[i].hasOwnProperty("event")) {
-								return false;
-							}
-						} else {
-							if (!timers[i].hasOwnProperty("starttime") || !timers[i].hasOwnProperty("endtime")) {
-								return false;
-							}
-						}
-					}
-					return true;
-				}
-				return false;
-			}
-
-			if (done) {
-				createInitTimeout();
-
-				node.on("input", function(msg) {
-					node.send(msg);
-				});
-
-				group.control({
+			if (checkConfig(config, node)) {
+				const done = ui.addWidget({
 					node: node,
+					format: HTML(config),
+					templateScope: "local",
+					group: config.group,
+					width: config.width,
+					height: Number(config.height) + 3,
 					order: config.order,
 					emitOnlyNewValues: false,
 					forwardInputMessages: false,
@@ -611,74 +614,23 @@ module.exports = function(RED) {
 						}
 
 						$scope.updateSolarLabels = function() {
-							if ($scope.formtimer.starttype !== "custom") {
-								$scope.formtimer.startLabel = $scope.formtimer.starttype;
-								if ($scope.formtimer.startOffset) {
-									const sign = $scope.formtimer.startOffset > 0 ? "+" : "";
-									$scope.formtimer.startLabel += " " + sign + $scope.formtimer.startOffset + "m";
-								}
+							const startOffset = $scope.formtimer.startOffset > 0 ? "+" + $scope.formtimer.startOffset : ($scope.formtimer.startOffset || 0);
+							const startTypeLabel = startOffset === 0 ? $scope.i18n[$scope.formtimer.starttype] : $scope.i18n[$scope.formtimer.starttype].substr(0, 8);
+							$scope.formtimer.solarStarttimeLabel = startTypeLabel + (startOffset != 0 ? " " + startOffset + "m" : "");
+							const endOffset = $scope.formtimer.endOffset > 0 ? "+" + $scope.formtimer.endOffset : ($scope.formtimer.endOffset || 0);
+							const endTypeLabel = endOffset === 0 ? $scope.i18n[$scope.formtimer.endtype] : $scope.i18n[$scope.formtimer.endtype].substr(0, 8);
+							$scope.formtimer.solarEndtimeLabel = endTypeLabel + (endOffset != 0 ? " " + endOffset + "m" : "");
+						}
+
+						$scope.offsetValidation = function(type) {
+							if (type === "start") {
+								if ($scope.formtimer.startOffset > 300) $scope.formtimer.startOffset = 300;
+								if ($scope.formtimer.startOffset < -300) $scope.formtimer.startOffset = -300;
+							} else if (type === "end") {
+								if ($scope.formtimer.endOffset > 300) $scope.formtimer.endOffset = 300;
+								if ($scope.formtimer.endOffset < -300) $scope.formtimer.endOffset = -300;
 							}
-							if ($scope.formtimer.endtype !== "custom") {
-								$scope.formtimer.endLabel = $scope.formtimer.endtype;
-								if ($scope.formtimer.endOffset) {
-									const sign = $scope.formtimer.endOffset > 0 ? "+" : "";
-									$scope.formtimer.endLabel += " " + sign + $scope.formtimer.endOffset + "m";
-								}
-							}
-						}
-
-						$scope.padZero = function(i) {
-							return (i < 10) ? "0" + i : i;
-						}
-
-						$scope.diff = function(start, end) {
-							return Math.floor((end - start) / 1000 / 60);
-						}
-
-						$scope.getElement = function(elementName) {
-							return document.getElementById(elementName + "-" + $scope.nodeId.replace(".", ""));
-						}
-
-						$scope.getTimersFromServer = function() {
-							if (!$scope.msg || !$scope.msg.payload) return;
-							const payload = $scope.msg.payload;
-
-							if (!payload.timers || !Array.isArray(payload.timers)) {
-								$scope.timers = undefined;
-								$scope.showStandardView();
-								return;
-							}
-
-							$scope.timers = payload.timers;
-							$scope.overviewFilter = (payload.settings && payload.settings.overviewFilter) ? payload.settings.overviewFilter : "all";
-							$scope.disabledDevices = (payload.settings && payload.settings.disabledDevices) ? payload.settings.disabledDevices : [];
-							$scope.showStandardView();
-						}
-
-						$scope.getTimersByOverviewFilter = function() {
-							if ($scope.overviewFilter === "all") {
-								return $scope.timers;
-							} else {
-								return $scope.timers.filter(timer => !timer.disabled && $scope.isDeviceEnabled(timer.output));
-							}
-						}
-
-						$scope.changeFilter = function(filter) {
-							$scope.overviewFilter = filter;
-							$scope.sendTimersToOutput();
-						}
-
-						$scope.isDeviceEnabled = function(device) {
-							return !$scope.disabledDevices.includes(device.toString());
-						}
-
-						$scope.toggleDeviceStatus = function(device) {
-							if ($scope.isDeviceEnabled(device)) {
-								$scope.disabledDevices.push(device.toString());
-							} else {
-								$scope.disabledDevices.splice($scope.disabledDevices.indexOf(device.toString()), 1);
-							}
-							$scope.sendTimersToOutput();
+							$scope.updateSolarLabels();
 						}
 
 						$scope.localDayToUtc = function(timer, localDay) {
@@ -692,200 +644,314 @@ module.exports = function(RED) {
 							return utcDay;
 						}
 
-						const solarEvents = ["sunrise", "sunriseEnd", "goldenHourEnd", "solarNoon", "goldenHour", "sunsetStart", "sunset", "dusk", "nauticalDusk", "night", "nadir", "nightEnd", "nauticalDawn", "dawn"];
-						$scope.sunOptions = ["custom"].concat(solarEvents);
-						$scope.solarEventsEnabled = config.solarEventsEnabled;
+						$scope.padZero = function(i) {
+							return i < 10 ? "0" + i : i;
+						}
+
+						$scope.diff = function(startDate, endDate) {
+							let diff = endDate - startDate;
+							const hours = Math.floor(diff / 1000 / 60 / 60);
+							diff -= hours * 1000 * 60 * 60;
+							const minutes = Math.floor(diff / 1000 / 60);
+
+							return (hours * 60) + minutes;
+						}
+
+						$scope.getElement = function(elementId) {
+							return document.querySelector("#" + elementId + "-" + $scope.nodeId.replace(".", ""));
+						}
+
+						$scope.changeFilter = function(filter) {
+							$scope.overviewFilter = filter;
+							$scope.sendTimersToOutput();
+						}
+
+						$scope.getTimersByOverviewFilter = function() {
+							if ($scope.overviewFilter == 'all') return $scope.timers;
+							return $scope.timers ? $scope.timers.filter(t => !t.disabled && $scope.isDeviceEnabled(t.output)) : [];
+						}
+
+						$scope.toggleDeviceStatus = function(deviceIndex) {
+							if ($scope.isDeviceEnabled(deviceIndex)) {
+								$scope.disabledDevices = $scope.disabledDevices || [];
+								$scope.disabledDevices.push(deviceIndex);
+							} else {
+								$scope.disabledDevices.splice($scope.disabledDevices.indexOf(deviceIndex), 1);
+							}
+							$scope.sendTimersToOutput();
+						}
+
+						$scope.isDeviceEnabled = function(deviceIndex) {
+							const disabledDevices = $scope.disabledDevices || [];
+							return !disabledDevices.includes(deviceIndex.toString());
+						}
+
+						$scope.getTimersFromServer = function() {
+							$.ajax({
+								url: "time-scheduler/getNode/" + $scope.nodeId, dataType: 'json',
+								beforeSend: function() {
+									$scope.loading = true;
+								},
+								success: function(json) {
+									$scope.timers = json.timers;
+									$scope.disabledDevices = json.settings.disabledDevices;
+									$scope.overviewFilter = json.settings.overviewFilter;
+									$scope.$digest();
+								},
+								complete: function() {
+									$scope.loading = false;
+									$scope.showStandardView();
+									$scope.$digest();
+								}
+							});
+						}
+					}
+				});
+
+				let nodeInterval;
+				let prevMsg = [];
+
+				(() => {
+					let timers = getContextValue('timers');
+					if (validateTimers(timers)) {
+						node.status({});
+						timers = timers.filter(timer => timer.output < config.devices.length);
+					} else {
+						node.status({ fill: "green", shape: "dot", text: "time-scheduler.contextCreated" });
+						timers = [];
+					}
+					setTimers(timers);
+					createInitTimeout();
+				})();
+
+				function validateTimers(timers) {
+					return Array.isArray(timers) && timers.every(element => {
+						if ((!element.hasOwnProperty("starttime") || !element.hasOwnProperty("days")) ||
+							(!config.eventMode && !element.hasOwnProperty("endtime")) ||
+							(config.eventMode && !element.hasOwnProperty("event"))) return false;
+
+						if (!element.hasOwnProperty("output")) element.output = "0";
+						else if (Number.isInteger(element.output)) element.output = element.output.toString();
+
+						return true;
+					});
+				}
+
+				function getContextValue(key) {
+					return config.customContextStore && RED.settings.contextStorage && RED.settings.contextStorage.hasOwnProperty(config.customContextStore) ?
+						node.context().get(key, config.customContextStore) : node.context().get(key);
+				}
+
+				function setContextValue(key, value) {
+					config.customContextStore && RED.settings.contextStorage && RED.settings.contextStorage.hasOwnProperty(config.customContextStore) ?
+						node.context().set(key, value, config.customContextStore) : node.context().set(key, value);
+				}
+
+				function getTimers() {
+					const timers = getContextValue('timers') || [];
+					return updateSolarEvents(timers).sort(function(a, b) {
+						const millisA = getNowWithCustomTime(a.starttime);
+						const millisB = getNowWithCustomTime(b.starttime);
+						return millisA - millisB;
+					});
+				}
+
+				function setTimers(timers) {
+					setContextValue('timers', timers);
+				}
+
+				function getSettings() {
+					return getContextValue('settings') || {};
+				}
+
+				function setSettings(settings) {
+					setContextValue('settings', settings);
+				}
+
+				function getDisabledDevices() {
+					return getSettings().disabledDevices || [];
+				}
+
+				function setDisabledDevices(disabledDevices) {
+					setSettings({ ...getSettings(), disabledDevices });
+				}
+
+				function addDisabledDevice(device) {
+					const disabledDevices = getDisabledDevices();
+					const deviceIndex = (isNaN(device) ? config.devices.indexOf(device) : device).toString();
+					if (deviceIndex >= 0 && config.devices.length > deviceIndex && !disabledDevices.includes(deviceIndex)) {
+						disabledDevices.push(deviceIndex);
+						setDisabledDevices(disabledDevices);
+						return true;
+					}
+					return false;
+				}
+
+				function removeDisabledDevice(device) {
+					const disabledDevices = getDisabledDevices();
+					const deviceIndex = (isNaN(device) ? config.devices.indexOf(device) : device).toString();
+					if (deviceIndex >= 0 && config.devices.length > deviceIndex && disabledDevices.includes(deviceIndex)) {
+						disabledDevices.splice(disabledDevices.indexOf(deviceIndex), 1);
+						setDisabledDevices(disabledDevices);
+						return true;
+					}
+					return false;
+				}
+
+				function createInitTimeout() {
+					const today = new Date();
+					const remaining = config.refresh - (today.getSeconds() % config.refresh);
+					setTimeout(function() {
+						nodeInterval = setInterval(intervalTimerFunction, config.refresh * 1000);
+						intervalTimerFunction();
+					}, (remaining * 1000) - today.getMilliseconds());
+				}
+
+				function intervalTimerFunction() {
+					const outputValues = [null];
+					addOutputValues(outputValues);
+					node.send(outputValues);
+				}
+
+				function addOutputValues(outputValues) {
+					for (let device = 0; device < config.devices.length; device++) {
+						const msg = { payload: isInTime(device) };
+						if (config.sendTopic) msg.topic = config.devices[device];
+						msg.payload != null ? outputValues.push(msg) : outputValues.push(null);
+					}
+					if (config.onlySendChange) removeUnchangedValues(outputValues);
+				}
+
+				function removeUnchangedValues(outputValues) {
+					const currMsg = JSON.parse(JSON.stringify(outputValues));
+					for (let i = 1; i <= config.devices.length; i++) {
+						if (prevMsg[i] && currMsg[i] && (prevMsg[i].payload === currMsg[i].payload)) {
+							outputValues[i] = null;
+						}
+					}
+					prevMsg = currMsg;
+				}
+
+				function isInTime(deviceIndex) {
+					const nodeTimers = getTimers();
+					let status = null;
+
+					if (nodeTimers.length > 0 && !getDisabledDevices().includes(deviceIndex.toString())) {
+						const date = new Date();
+
+						nodeTimers.filter(timer => timer.output == deviceIndex).forEach(function(timer) {
+							if (status != null) return;
+							if (timer.hasOwnProperty("disabled")) return;
+
+							const utcDay = localDayToUtc(timer, date.getDay());
+							const localStarttime = new Date(timer.starttime);
+							const localEndtime = config.eventMode ? localStarttime : new Date(timer.endtime);
+							const daysDiff = localEndtime.getDay() - localStarttime.getDay();
+
+							if (daysDiff != 0) {
+								// WRAPS AROUND MIDNIGHT (SERVER PERSPECTIVE)
+								const utcYesterday = utcDay - 1 < 0 ? 6 : utcDay - 1;
+								if (timer.days[utcYesterday] === 1) {
+									// AND STARTED YESTERDAY (SERVER PERSPECTIVE)
+									const compareDate = new Date(localEndtime);
+									compareDate.setHours(date.getHours());
+									compareDate.setMinutes(date.getMinutes());
+									if (compareDate.getTime() < localEndtime.getTime()) {
+										status = true;
+										return;
+									}
+								}
+							}
+
+							if (timer.days[utcDay] === 0) return;
+
+							const compareDate = new Date(localStarttime);
+							compareDate.setHours(date.getHours());
+							compareDate.setMinutes(date.getMinutes());
+
+							if (config.eventMode) {
+								if (compareDate.getTime() == localStarttime.getTime()) {
+									status = timer.event;
+								}
+							} else {
+								if (compareDate.getTime() >= localStarttime.getTime() && compareDate.getTime() < localEndtime.getTime()) {
+									status = true;
+								} else if (compareDate.getTime() == localEndtime.getTime()) {
+									status = false;
+								}
+							}
+						});
+					}
+
+					if (!config.eventMode && !config.singleOff && status == null) status = false;
+					return status;
+				}
+
+				function localDayToUtc(timer, localDay) {
+					const start = new Date(timer.starttime);
+					let shift = start.getUTCDay() - start.getDay();
+					if (shift < -1) shift = 1;
+					if (shift > 1) shift = -1;
+					let utcDay = shift + localDay;
+					if (utcDay < 0) utcDay = 6;
+					if (utcDay > 6) utcDay = 0;
+					return utcDay;
+				}
+
+				function getNowWithCustomTime(timeInMillis) {
+					const date = new Date();
+					const origDate = new Date(timeInMillis);
+					date.setHours(origDate.getHours());
+					date.setMinutes(origDate.getMinutes());
+					date.setSeconds(0); date.setMilliseconds(0);
+					return date.getTime();
+				}
+
+				function updateSolarEvents(timers) {
+					if (config.solarEventsEnabled) {
+						const sunTimes = sunCalc.getTimes(new Date(), config.lat, config.lon);
+						return timers.map(t => {
+							if (t.hasOwnProperty("startSolarEvent")) {
+								const offset = t.startSolarOffset || 0;
+								const solarTime = sunTimes[t.startSolarEvent];
+								t.starttime = solarTime.getTime() + (offset * 60 * 1000);
+							}
+							if (t.hasOwnProperty("endSolarEvent")) {
+								const offset = t.endSolarOffset || 0;
+								const solarTime = sunTimes[t.endSolarEvent];
+								t.endtime = solarTime.getTime() + (offset * 60 * 1000);
+							}
+							if (t.hasOwnProperty("startSolarEvent") || t.hasOwnProperty("endSolarEvent")) {
+								if (t.starttime >= t.endtime) t.endtime += 24 * 60 * 60 * 1000;
+							}
+							return t;
+						});
+					} else {
+						return timers.filter(t => !t.hasOwnProperty("startSolarEvent") && !t.hasOwnProperty("endSolarEvent"));
+					}
+				}
+
+				function getNodeData() {
+					return { timers: getTimers(), settings: getSettings() };
+				}
+
+				function serializeData() {
+					return JSON.stringify(getNodeData());
+				}
+
+				node.nodeCallback = function nodeCallback(req, res) {
+					res.send(getNodeData());
+				}
+
+				node.on("close", function() {
+					if (nodeInterval) {
+						clearInterval(nodeInterval);
+					}
+					if (done) {
+						done();
 					}
 				});
 			}
-
-			function getDisabledDevices() {
-				const settings = getSettings();
-				if (settings && settings.disabledDevices) return settings.disabledDevices;
-				else return [];
-			}
-
-			function setDisabledDevices(disabledDevices) {
-				const settings = getSettings();
-				settings.disabledDevices = disabledDevices;
-				setSettings(settings);
-			}
-
-			function addDisabledDevice(device) {
-				const disabledDevices = getDisabledDevices();
-				const deviceIndex = (isNaN(device) ? config.devices.indexOf(device) : device).toString();
-				if (deviceIndex >= 0 && config.devices.length > deviceIndex && !disabledDevices.includes(deviceIndex)) {
-					disabledDevices.push(deviceIndex);
-					setDisabledDevices(disabledDevices);
-					return true;
-				}
-				return false;
-			}
-
-			function removeDisabledDevice(device) {
-				const disabledDevices = getDisabledDevices();
-				const deviceIndex = (isNaN(device) ? config.devices.indexOf(device) : device).toString();
-				if (deviceIndex >= 0 && config.devices.length > deviceIndex && disabledDevices.includes(deviceIndex)) {
-					disabledDevices.splice(disabledDevices.indexOf(deviceIndex), 1);
-					setDisabledDevices(disabledDevices);
-					return true;
-				}
-				return false;
-			}
-
-			function createInitTimeout() {
-				const today = new Date();
-				const remaining = config.refresh - (today.getSeconds() % config.refresh);
-				setTimeout(function() {
-					nodeInterval = setInterval(intervalTimerFunction, config.refresh * 1000);
-					intervalTimerFunction();
-				}, (remaining * 1000) - today.getMilliseconds());
-			}
-
-			function intervalTimerFunction() {
-				const outputValues = [null];
-				addOutputValues(outputValues);
-				node.send(outputValues);
-			}
-
-			function addOutputValues(outputValues) {
-				for (let device = 0; device < config.devices.length; device++) {
-					const msg = { payload: isInTime(device) };
-					if (config.sendTopic) msg.topic = config.devices[device];
-					msg.payload != null ? outputValues.push(msg) : outputValues.push(null);
-				}
-				if (config.onlySendChange) removeUnchangedValues(outputValues);
-			}
-
-			function removeUnchangedValues(outputValues) {
-				const currMsg = JSON.parse(JSON.stringify(outputValues));
-				for (let i = 1; i <= config.devices.length; i++) {
-					if (prevMsg[i] && currMsg[i] && (prevMsg[i].payload === currMsg[i].payload)) {
-						outputValues[i] = null;
-					}
-				}
-				prevMsg = currMsg;
-			}
-
-			function isInTime(deviceIndex) {
-				const nodeTimers = getTimers();
-				let status = null;
-
-				if (nodeTimers.length > 0 && !getDisabledDevices().includes(deviceIndex.toString())) {
-					const date = new Date();
-
-					nodeTimers.filter(timer => timer.output == deviceIndex).forEach(function(timer) {
-						if (status != null) return;
-						if (timer.hasOwnProperty("disabled")) return;
-
-						const utcDay = localDayToUtc(timer, date.getDay());
-						const localStarttime = new Date(timer.starttime);
-						const localEndtime = config.eventMode ? localStarttime : new Date(timer.endtime);
-						const daysDiff = localEndtime.getDay() - localStarttime.getDay();
-
-						if (daysDiff != 0) {
-							// WRAPS AROUND MIDNIGHT (SERVER PERSPECTIVE)
-							const utcYesterday = utcDay - 1 < 0 ? 6 : utcDay - 1;
-							if (timer.days[utcYesterday] === 1) {
-								// AND STARTED YESTERDAY (SERVER PERSPECTIVE)
-								const compareDate = new Date(localEndtime);
-								compareDate.setHours(date.getHours());
-								compareDate.setMinutes(date.getMinutes());
-								if (compareDate.getTime() < localEndtime.getTime()) {
-									status = true;
-									return;
-								}
-							}
-						}
-
-						if (timer.days[utcDay] === 0) return;
-
-						const compareDate = new Date(localStarttime);
-						compareDate.setHours(date.getHours());
-						compareDate.setMinutes(date.getMinutes());
-
-						if (config.eventMode) {
-							if (compareDate.getTime() == localStarttime.getTime()) {
-								status = timer.event;
-							}
-						} else {
-							if (compareDate.getTime() >= localStarttime.getTime() && compareDate.getTime() < localEndtime.getTime()) {
-								status = true;
-							} else if (compareDate.getTime() == localEndtime.getTime()) {
-								status = false;
-							}
-						}
-					});
-				}
-
-				if (!config.eventMode && !config.singleOff && status == null) status = false;
-				return status;
-			}
-
-			function localDayToUtc(timer, localDay) {
-				const start = new Date(timer.starttime);
-				let shift = start.getUTCDay() - start.getDay();
-				if (shift < -1) shift = 1;
-				if (shift > 1) shift = -1;
-				let utcDay = shift + localDay;
-				if (utcDay < 0) utcDay = 6;
-				if (utcDay > 6) utcDay = 0;
-				return utcDay;
-			}
-
-			function getNowWithCustomTime(timeInMillis) {
-				const date = new Date();
-				const origDate = new Date(timeInMillis);
-				date.setHours(origDate.getHours());
-				date.setMinutes(origDate.getMinutes());
-				date.setSeconds(0); date.setMilliseconds(0);
-				return date.getTime();
-			}
-
-			function updateSolarEvents(timers) {
-				if (config.solarEventsEnabled) {
-					const sunTimes = sunCalc.getTimes(new Date(), config.lat, config.lon);
-					return timers.map(t => {
-						if (t.hasOwnProperty("startSolarEvent")) {
-							const offset = t.startSolarOffset || 0;
-							const solarTime = sunTimes[t.startSolarEvent];
-							t.starttime = solarTime.getTime() + (offset * 60 * 1000);
-						}
-						if (t.hasOwnProperty("endSolarEvent")) {
-							const offset = t.endSolarOffset || 0;
-							const solarTime = sunTimes[t.endSolarEvent];
-							t.endtime = solarTime.getTime() + (offset * 60 * 1000);
-						}
-						if (t.hasOwnProperty("startSolarEvent") || t.hasOwnProperty("endSolarEvent")) {
-							if (t.starttime >= t.endtime) t.endtime += 24 * 60 * 60 * 1000;
-						}
-						return t;
-					});
-				} else {
-					return timers.filter(t => !t.hasOwnProperty("startSolarEvent") && !t.hasOwnProperty("endSolarEvent"));
-				}
-			}
-
-			function getNodeData() {
-				return { timers: getTimers(), settings: getSettings() };
-			}
-
-			function serializeData() {
-				return JSON.stringify(getNodeData());
-			}
-
-			node.nodeCallback = function nodeCallback(req, res) {
-				res.send(getNodeData());
-			}
-
-			node.on("close", function() {
-				if (nodeInterval) {
-					clearInterval(nodeInterval);
-				}
-				if (done) {
-					done();
-				}
-			});
 		} catch (error) {
 			console.log("TimeSchedulerNode:", error);
 		}

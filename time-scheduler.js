@@ -453,7 +453,16 @@ module.exports = function(RED) {
 						}
 
 						$scope.$watch('msg', function() {
-							$scope.getTimersFromServer();
+							// Check if msg has payload with timers (from beforeSend)
+							if ($scope.msg && $scope.msg.payload && $scope.msg.payload.timers !== undefined) {
+								$scope.timers = $scope.msg.payload.timers || [];
+								$scope.disabledDevices = ($scope.msg.payload.settings && $scope.msg.payload.settings.disabledDevices) || [];
+								$scope.overviewFilter = ($scope.msg.payload.settings && $scope.msg.payload.settings.overviewFilter) || 'all';
+								$scope.showStandardView();
+							} else {
+								// Fall back to AJAX for initial load
+								$scope.getTimersFromServer();
+							}
 						});
 
 						$scope.toggleViews = function() {
@@ -625,6 +634,7 @@ module.exports = function(RED) {
 							}
 
 							$scope.sendTimersToOutput();
+							$scope.showStandardView();
 						}
 
 						$scope.deleteTimer = function() {
@@ -633,15 +643,15 @@ module.exports = function(RED) {
 						}
 
 						$scope.sendTimersToOutput = function() {
-							if (!$scope.msg) $scope.msg = [{ payload: "" }];
-							$scope.msg[0].payload = {
+							if (!$scope.msg) $scope.msg = { payload: "" };
+							$scope.msg.payload = {
 								timers: angular.copy($scope.timers),
 								settings: {
-									disabledDevices: angular.copy($scope.disabledDevices),
-									overviewFilter: angular.copy($scope.overviewFilter)
+									disabledDevices: angular.copy($scope.disabledDevices || []),
+									overviewFilter: angular.copy($scope.overviewFilter || 'all')
 								}
 							};
-							$scope.send([$scope.msg[0]]);
+							$scope.send($scope.msg);
 						}
 
 						$scope.daysChanged = function() {
@@ -754,9 +764,9 @@ module.exports = function(RED) {
 									$scope.loading = true;
 								},
 								success: function(json) {
-									$scope.timers = json.timers;
-									$scope.disabledDevices = json.settings.disabledDevices;
-									$scope.overviewFilter = json.settings.overviewFilter;
+									$scope.timers = json.timers || [];
+									$scope.disabledDevices = json.settings.disabledDevices || [];
+									$scope.overviewFilter = json.settings.overviewFilter || 'all';
 									$scope.$digest();
 								},
 								complete: function() {

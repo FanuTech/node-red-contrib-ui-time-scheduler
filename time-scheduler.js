@@ -467,7 +467,8 @@ module.exports = function(RED) {
 							$scope.getElement("addTimerView").style.display = "block";
 							
 							// Use provided deviceIndex or current edit device
-							if (deviceIndex !== undefined) {
+							// Check !== undefined to allow 0 as valid index
+							if (deviceIndex !== undefined && deviceIndex !== null) {
 								$scope.currentEditDevice = deviceIndex;
 							}
 							
@@ -518,6 +519,13 @@ module.exports = function(RED) {
 						}
 
 						$scope.addTimer = function() {
+							// Ensure we have a device selected
+							if ($scope.currentEditDevice === null || $scope.currentEditDevice === undefined) {
+								alert("Error: No device selected. Please try again.");
+								$scope.showStandardView();
+								return;
+							}
+							
 							const now = new Date();
 							const startInput = $scope.getElement("timerStarttime").value.split(":");
 							// Get time in device timezone
@@ -528,7 +536,7 @@ module.exports = function(RED) {
 							const timer = {
 								starttime: starttime,
 								days: [0, 0, 0, 0, 0, 0, 0],
-								output: $scope.currentEditDevice
+								output: $scope.currentEditDevice.toString()
 							};
 
 							if ($scope.formtimer.starttype !== "custom") {
@@ -584,16 +592,22 @@ module.exports = function(RED) {
 
 							const timerIndex = $scope.formtimer.index;
 							
+							// Ensure timers array exists
+							if (!$scope.timers) {
+								$scope.timers = [];
+							}
+							
 							// MODIFIED: Check if we're adding a new timer (not editing)
 							if (timerIndex === undefined) {
 								// Find if there's already a timer for this device
-								const existingTimerIndex = $scope.timers.findIndex(t => t.output == $scope.currentEditDevice);
+								const existingTimerIndex = $scope.timers.findIndex(t => t.output.toString() === $scope.currentEditDevice.toString());
 								
 								if (existingTimerIndex !== -1) {
 									// Replace existing timer for this device
 									if (confirm("This device already has a schedule. Do you want to replace it?")) {
 										$scope.timers.splice(existingTimerIndex, 1, timer);
 									} else {
+										$scope.showStandardView(); // Close the form
 										return; // Cancel the operation
 									}
 								} else {

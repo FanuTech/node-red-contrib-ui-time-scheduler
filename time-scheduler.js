@@ -145,7 +145,7 @@ module.exports = function(RED) {
 				</div>
 			</div>
 			<div id="addTimerView-${uniqueId}" style="display:none; position: relative;">
-				<form ng-submit="addTimer()" style="width: 100%; position: absolute;">
+				<div style="width: 100%; position: absolute;">
 					<div ng-show="!showSunSettings">
 						<div layout="row" layout-align="space-between none" style="max-height: 60px;">
 							<md-input-container flex="50" ng-show="formtimer.starttype === 'custom'" style="margin-left: 0">
@@ -199,7 +199,7 @@ module.exports = function(RED) {
 							</md-button>
 							<span ng-if="formtimer.index === undefined" style="width: 40px;"></span> <span ng-if="formtimer.index === undefined" style="width: 40px;"></span>
 							${config.solarEventsEnabled ? `<md-button style="margin: 1px;" aria-label="suntimer" ng-click="showSunSettings=!showSunSettings"> <md-icon> wb_sunny </md-icon> </md-button>` : ``}
-							<md-button style="margin: 1px" type="submit"> <md-icon> done </md-icon> </md-button>
+							<md-button style="margin: 1px" ng-click="addTimer()" ng-disabled="formtimer.dayselect.length === 0"> <md-icon> done </md-icon> </md-button>
 						</div>
 					</div>
 					<div ng-show="showSunSettings">
@@ -259,7 +259,7 @@ module.exports = function(RED) {
 							<md-button style="margin: 1px;" aria-label="suntimer" ng-click="showSunSettings=!showSunSettings"> <md-icon> arrow_back </md-icon> </md-button>
 						</div>
 					</div>
-				</form>
+					</div>
 				<div ng-show="loading" layout="row" layout-align="center center" style="width:100%; position: absolute; z-index:10; opacity: 0.9; height:150px; background-color: var(--nr-dashboard-widgetColor);">
 					<md-progress-circular md-mode="indeterminate"></md-progress-circular>
 				</div>
@@ -519,6 +519,17 @@ module.exports = function(RED) {
 						}
 
 						$scope.addTimer = function() {
+							console.log("addTimer called");
+							console.log("currentEditDevice:", $scope.currentEditDevice);
+							console.log("formtimer:", $scope.formtimer);
+							console.log("dayselect:", $scope.formtimer.dayselect);
+							
+							// Validate days are selected
+							if (!$scope.formtimer.dayselect || $scope.formtimer.dayselect.length === 0) {
+								alert("Please select at least one day for the schedule.");
+								return;
+							}
+							
 							// Ensure we have a device selected
 							if ($scope.currentEditDevice === null || $scope.currentEditDevice === undefined) {
 								alert("Error: No device selected. Please try again.");
@@ -528,16 +539,20 @@ module.exports = function(RED) {
 							
 							const now = new Date();
 							const startInput = $scope.getElement("timerStarttime").value.split(":");
+							console.log("startInput:", startInput);
+							
 							// Get time in device timezone
 							let starttime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startInput[0], startInput[1], 0, 0).getTime();
 							// Convert to PST (system time) for storage
 							starttime = $scope.convertTimeToPST(starttime, $scope.currentEditDevice);
+							console.log("starttime:", starttime);
 
 							const timer = {
 								starttime: starttime,
 								days: [0, 0, 0, 0, 0, 0, 0],
 								output: $scope.currentEditDevice.toString()
 							};
+							console.log("timer object created:", timer);
 
 							if ($scope.formtimer.starttype !== "custom") {
 								timer.startSolarEvent = $scope.formtimer.starttype;
@@ -619,8 +634,12 @@ module.exports = function(RED) {
 								$scope.timers.splice(timerIndex, 1, timer);
 							}
 
+							console.log("Timers array after save:", $scope.timers);
+							console.log("Calling sendTimersToOutput");
 							$scope.sendTimersToOutput();
+							console.log("Calling showStandardView");
 							$scope.showStandardView();
+							console.log("addTimer completed");
 						}
 
 						$scope.deleteTimer = function() {

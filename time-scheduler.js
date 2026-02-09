@@ -78,6 +78,55 @@ module.exports = function(RED) {
 			#${divPrimary} .weekDayActive {
 				opacity: 1;
 			}
+
+			/* Column alignment for device rows */
+			#${divPrimary} .ts-row {
+				display: grid;
+				grid-template-columns: minmax(200px, 1fr) 120px 240px 96px;
+				column-gap: 10px;
+				align-items: center;
+				width: 100%;
+			}
+			#${divPrimary} .ts-device {
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				min-width: 0;
+			}
+			#${divPrimary} .ts-tz {
+				justify-self: end;
+			}
+			#${divPrimary} .ts-tz md-input-container {
+				margin: 0 !important;
+				width: 110px !important;
+			}
+			#${divPrimary} .ts-schedule {
+				justify-self: end;
+				text-align: right;
+				min-width: 0;
+			}
+			#${divPrimary} .ts-schedule .ts-schedule-main,
+			#${divPrimary} .ts-schedule .ts-schedule-sub {
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+			#${divPrimary} .ts-actions {
+				justify-self: end;
+				display: flex;
+				align-items: center;
+			}
+			#${divPrimary} .ts-actions md-button {
+				margin: 0 0 0 4px !important;
+			}
+			@media (max-width: 600px) {
+				#${divPrimary} .ts-row {
+					grid-template-columns: minmax(160px, 1fr) 105px 190px 96px;
+					column-gap: 6px;
+				}
+				#${divPrimary} .ts-tz md-input-container { width: 100px !important; }
+			}
+
 		</style>
 		`;
 
@@ -90,31 +139,31 @@ module.exports = function(RED) {
 					</md-subheader>
 
 					<md-list-item class="md-2-line" ng-repeat="device in devices track by $index" style="min-height: 72px; padding: 0 5px;">
-						<div class="md-list-item-text" layout="column" style="width:100%; opacity:{{isDeviceEnabled($index) ? 1 : 0.4}};">
-							<div layout="row" layout-align="space-between center">
-								<div flex="38" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{device.name}}</div>
+						<div class="md-list-item-text" layout="column" style="width:100%;">
+							<div class="ts-row" style="opacity:{{isDeviceEnabled($index) ? 1 : 0.4}};">
+								<div class="ts-device">{{device.name}}</div>
 
-								<div flex="24" layout="row" layout-align="center center">
-									<md-input-container style="margin:0; width: 110px;">
+								<div class="ts-tz">
+									<md-input-container>
 										<md-select class="nr-dashboard-dropdown" aria-label="Time Zone" ng-model="deviceTimezones[$index]" ng-change="saveSettings()" ng-disabled="isEditMode">
 											<md-option ng-repeat="tz in tzOptions" value="{{tz.value}}">{{tz.label}}</md-option>
 										</md-select>
 									</md-input-container>
 								</div>
 
-								<div flex="26" style="text-align:center;">
+								<div class="ts-schedule">
 									<div ng-if="getTimerForDevice($index)">
-										<div>{{scheduleLabel($index)}}</div>
-										<div style="font-size: 0.75em; opacity: 0.85;">{{daysLabel($index)}}</div>
+										<div class="ts-schedule-main">{{scheduleLabel($index)}}</div>
+										<div class="ts-schedule-sub" style="font-size: 0.75em; opacity: 0.85;">{{daysLabel($index)}}</div>
 									</div>
 									<div ng-if="!getTimerForDevice($index)" style="opacity:0.8;">No schedule</div>
 								</div>
 
-								<div flex="12" layout="row" layout-align="end center">
-									<md-button style="width: 40px; height: 36px; margin: 0 4px 0 0;" aria-label="device enabled" ng-click="toggleDeviceStatus($index)" ng-disabled="isEditMode">
+								<div class="ts-actions">
+									<md-button style="width: 40px; height: 36px;" aria-label="device enabled" ng-click="toggleDeviceStatus($index)" ng-disabled="isEditMode">
 										<md-icon> {{isDeviceEnabled($index) ? "alarm_on" : "alarm_off"}} </md-icon>
 									</md-button>
-									<md-button style="width: 40px; height: 36px; margin: 0px;" aria-label="edit schedule" ng-click="editDevice($index)" ng-disabled="loading">
+									<md-button style="width: 40px; height: 36px;" aria-label="edit schedule" ng-click="editDevice($index)" ng-disabled="loading">
 										<md-icon> edit </md-icon>
 									</md-button>
 								</div>

@@ -117,7 +117,7 @@ module.exports = function(RED) {
 				flex-direction: row;
 				flex-wrap: nowrap;
 				white-space: nowrap;
-				align-items: center;
+				align-items: right;
 				justify-content: flex-end;
 				gap: 8px;
 				min-width: 0;

@@ -110,6 +110,7 @@ SOFTWARE.
             startDay: { value: 0 },
             refresh: { value: 60 },
             devices: { value: ["Device 1"] },
+            deviceTimezones: { value: ["PST"] },
             singleOff: { value: false },
             onlySendChange: { value: false },
             customPayload: { value: false },
@@ -138,36 +139,47 @@ SOFTWARE.
         inputs: 1,
         outputs: 2,
         icon: "calendar.png",
-        paletteLabel: "ui scheduler single",
-        label: function() { return this.name || "ui scheduler single"; },
+        paletteLabel: "time-scheduler",
+        label: function() {
+            return this.name || "time-scheduler";
+        },
         oneditprepare: function() {
             const node = this;
 
-            $("#node-input-size").elementSizer({
-                width: "#node-input-width",
-                height: "#node-input-height",
-                group: "#node-input-group"
-            });
 
-            $("#node-input-refresh").on("change", function() {
-                if ($("#node-input-refresh").val() <= 0 || $("#node-input-refresh").val() > 60) {
-                    $("#node-input-refresh").val(60);
+            // Enable the Dashboard size selector (writes to hidden #node-input-width/#node-input-height)
+            if ($.fn.elementSizer) {
+                $("#node-input-size").elementSizer({
+                    width: "#node-input-width",
+                    height: "#node-input-height",
+                    group: "#node-input-group"
+                });
+            } else {
+                console.warn("ui_time_scheduler: elementSizer() is not available - is node-red-dashboard installed?");
+            }
+
+            const availableTimezones = [
+                "PST", "MST", "CST", "EST", "HST", "AKST",
+                "UTC", "GMT", "CET", "EET", "IST", "JST",
+                "AEST", "NZST", "Other"
+            ];
+
+            $("#node-input-group").append('<option value="_ADD_">Add new ui_group</option>');
+            $("#node-input-group").on("change", function() {
+                if ($(this).val() === "_ADD_") {
+                    RED.editor.editConfig("", "ui_group", function() {});
                 }
             });
 
             $("#node-input-eventMode").on("change", function() {
                 if ($("#node-input-eventMode").prop("checked")) {
-                    $("#node-div-customPayload").show();
-                    $("#node-input-customPayload").prop("checked") ? '' : $("#node-div-eventOption").show();
-                    $("#node-input-refresh").val(60);
-                    $("#node-div-refresh").hide();
                     $("#node-div-singleOff").hide();
+                    if (!$("#node-input-customPayload").prop("checked")) {
+                        $("#node-div-eventOption").show();
+                    }
                 } else {
-                    $("#node-input-customPayload").prop("checked", false);
-                    $("#node-div-customPayload").hide();
-                    $("#node-div-eventOption").hide();
-                    $("#node-div-refresh").show();
                     $("#node-div-singleOff").show();
+                    $("#node-div-eventOption").hide();
                 }
             });
 
@@ -197,13 +209,34 @@ SOFTWARE.
                 addItem: function(row, index, data) {
                     const current = node._("time-scheduler.label.device") + " " + (index + 1);
 
-                    const label = $('<span/>', { class: "node-input-device-label", text: " " + current });
+                    const label = $('<span/>', { class: "node-input-device-label", text: " " + current, style: "display: inline-block; width: 80px;" });
                     $(row).html(label);
 
-                    const nameInput = $('<input/>', { class: "node-input-device-name", type: "text", style: "margin-left:7px; width:calc(75% - 32px);", value: data.name || current });
+                    const nameInput = $('<input/>', { 
+                        class: "node-input-device-name", 
+                        type: "text", 
+                        style: "margin-left:7px; width:calc(40% - 32px);", 
+                        value: data.name || current 
+                    });
                     nameInput.appendTo(row).typedInput({ default: 'str', types: ['str'] });
 
-                    const finalspan = $('<span/>', { style: "float: right;margin-top: 6px;" }).appendTo(row);
+                    // Add timezone dropdown
+                    const tzLabel = $('<span/>', { text: " TZ: ", style: "margin-left: 10px;" });
+                    tzLabel.appendTo(row);
+                    
+                    const tzSelect = $('<select/>', { 
+                        class: "node-input-device-timezone",
+                        style: "width: 80px; margin-left: 5px;"
+                    });
+                    
+                    availableTimezones.forEach(tz => {
+                        tzSelect.append(new Option(tz, tz));
+                    });
+                    
+                    tzSelect.val(data.timezone || "PST");
+                    tzSelect.appendTo(row);
+
+                    const finalspan = $('<span/>', { style: "float: right; margin-top: 6px;" }).appendTo(row);
                     finalspan.append(' &#8594; <span class="node-input-device-index">' + (index + 2) + '</span> ');
                 },
                 removeItem: function(opt) {
@@ -256,13 +289,24 @@ SOFTWARE.
 
             if (!this.startDay) $("#node-input-startDay").val(0).change();
             if (!this.refresh) $("#node-input-refresh").val(60);
+            
+            // Initialize deviceTimezones if not present
+            if (!this.deviceTimezones) {
+                this.deviceTimezones = [];
+            }
+            
             if (!this.devices) {
-                $("#node-input-device-container").editableList('addItem', { name: this.name });
+                $("#node-input-device-container").editableList('addItem', { name: this.name, timezone: "PST" });
             } else {
                 for (let i = 0; i < this.devices.length; i++) {
-                    $("#node-input-device-container").editableList('addItem', { name: this.devices[i] });
+                    const timezone = this.deviceTimezones[i] || "PST";
+                    $("#node-input-device-container").editableList('addItem', { 
+                        name: this.devices[i],
+                        timezone: timezone
+                    });
                 }
             }
+            
             if (!this.eventOptions || this.eventOptions.length === 0) {
                 $("#node-input-eventOption-container").editableList('addItem', { label: node._("time-scheduler.label.on"), event: "true" });
                 $("#node-input-eventOption-container").editableList('addItem', { label: node._("time-scheduler.label.off"), event: "false" });
@@ -276,6 +320,7 @@ SOFTWARE.
             const node = this;
 
             node.devices = [];
+            node.deviceTimezones = [];
             const devices = $("#node-input-device-container").editableList('items');
             devices.each(function(i) {
                 const device = $(this);
@@ -285,6 +330,10 @@ SOFTWARE.
                     deviceName = deviceName + "_" + node._("time-scheduler.copy");
                 }
                 node.devices.push(deviceName);
+                
+                // Save timezone for each device
+                const timezone = device.find(".node-input-device-timezone").val() || "PST";
+                node.deviceTimezones.push(timezone);
             });
 
             node.eventOptions = [];

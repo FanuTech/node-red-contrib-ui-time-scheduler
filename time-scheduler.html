@@ -234,8 +234,15 @@ SOFTWARE.
                     const label = $('<span/>', { class: "node-input-device-label", text: " " + current });
                     $(row).html(label);
 
-                    const nameInput = $('<input/>', { class: "node-input-device-name", type: "text", style: "margin-left:7px; width:calc(75% - 32px);", value: data.name || current });
+                    const dataObj = (typeof data === "string") ? { name: data, topic: data } : (data || {});
+                    const nameVal = (dataObj.name || current);
+                    const topicVal = (dataObj.topic !== undefined ? dataObj.topic : nameVal);
+
+                    const nameInput = $('<input/>', { class: "node-input-device-name", type: "text", style: "margin-left:7px; width:calc(40% - 32px);", value: nameVal });
                     nameInput.appendTo(row).typedInput({ default: 'str', types: ['str'] });
+
+                    const topicInput = $('<input/>', { class: "node-input-device-topic", type: "text", style: "margin-left:7px; width:calc(35% - 32px);", value: topicVal, placeholder: "Topic" });
+                    topicInput.appendTo(row).typedInput({ default: 'str', types: ['str'] });
 
                     const finalspan = $('<span/>', { style: "float: right;margin-top: 6px;" }).appendTo(row);
                     finalspan.append(' &#8594; <span class="node-input-device-index">' + (index + 2) + '</span> ');
@@ -248,6 +255,10 @@ SOFTWARE.
                         const regex = new RegExp("^" + node._("time-scheduler.label.device") + " \\d+$")
                         if (regex.test(name)) {
                             $(this).find(".node-input-device-name").typedInput('value', node._("time-scheduler.label.device") + " " + (i + 1));
+                        }
+                        const topic = $(this).find(".node-input-device-topic").typedInput('value');
+                        if (regex.test(topic)) {
+                            $(this).find(".node-input-device-topic").typedInput('value', node._("time-scheduler.label.device") + " " + (i + 1));
                         }
                         $(this).find(".node-input-device-index").html(i + 2);
                     });
@@ -262,6 +273,10 @@ SOFTWARE.
                         const regex = new RegExp("^" + node._("time-scheduler.label.device") + " \\d+$")
                         if (regex.test(name)) {
                             $(this).find(".node-input-device-name").typedInput('value', node._("time-scheduler.label.device") + " " + (i + 1));
+                        }
+                        const topic = $(this).find(".node-input-device-topic").typedInput('value');
+                        if (regex.test(topic)) {
+                            $(this).find(".node-input-device-topic").typedInput('value', node._("time-scheduler.label.device") + " " + (i + 1));
                         }
                         $(this).find(".node-input-device-index").html(i + 2);
                     });
@@ -291,10 +306,15 @@ SOFTWARE.
             if (!this.startDay) $("#node-input-startDay").val(0).change();
             if (!this.refresh) $("#node-input-refresh").val(60);
             if (!this.devices) {
-                $("#node-input-device-container").editableList('addItem', { name: this.name });
+                $("#node-input-device-container").editableList('addItem', { name: this.name, topic: this.name });
             } else {
                 for (let i = 0; i < this.devices.length; i++) {
-                    $("#node-input-device-container").editableList('addItem', { name: this.devices[i] });
+                    const d = this.devices[i];
+                    if (typeof d === "string") {
+                        $("#node-input-device-container").editableList('addItem', { name: d, topic: d });
+                    } else {
+                        $("#node-input-device-container").editableList('addItem', { name: d.name, topic: d.topic });
+                    }
                 }
             }
             if (!this.eventOptions || this.eventOptions.length === 0) {
@@ -317,12 +337,23 @@ SOFTWARE.
             const devices = $("#node-input-device-container").editableList('items');
             devices.each(function(i) {
                 const device = $(this);
+                const defaultName = node._("time-scheduler.label.device") + " " + (i + 1);
+
                 let deviceName = device.find(".node-input-device-name").typedInput('value');
-                deviceName = deviceName === "" ? node._("time-scheduler.label.device") + " " + (i + 1) : deviceName;
-                while (node.devices.includes(deviceName)) {
+                deviceName = deviceName === "" ? defaultName : deviceName;
+
+                let topic = device.find(".node-input-device-topic").typedInput('value');
+                // Keep backward-compatible behavior: if topic is blank, use the display name
+                topic = (topic === "" || topic === undefined || topic === null) ? deviceName : topic;
+
+                const originalName = deviceName;
+                while (node.devices.some(d => d && d.name === deviceName)) {
                     deviceName = deviceName + "_" + node._("time-scheduler.copy");
                 }
-                node.devices.push(deviceName);
+                // If topic was the same as the original auto/default name, keep it aligned with the final unique name
+                if (topic === originalName) topic = deviceName;
+
+                node.devices.push({ name: deviceName, topic });
             });
 
             node.eventOptions = [];

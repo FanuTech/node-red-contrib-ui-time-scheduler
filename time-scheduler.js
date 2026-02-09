@@ -92,7 +92,7 @@ module.exports = function(RED) {
 					<md-list-item class="md-2-line" ng-repeat="device in devices track by $index" style="min-height: 72px; padding: 0 5px;">
 						<div class="md-list-item-text" layout="column" style="width:100%; opacity:{{isDeviceEnabled($index) ? 1 : 0.4}};">
 							<div layout="row" layout-align="space-between center">
-								<div flex="38" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{device}}</div>
+								<div flex="38" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{device.name}}</div>
 
 								<div flex="24" layout="row" layout-align="center center">
 									<md-input-container style="margin:0; width: 110px;">
@@ -127,7 +127,7 @@ module.exports = function(RED) {
 
 			<div id="addTimerView-${uniqueId}" style="display:none; position: relative;">
 				<div layout="row" layout-align="space-between center" style="max-height: 50px;">
-					<span flex="70" style="height:50px; line-height: 50px;"> {{devices[editDeviceIndex]}} </span>
+					<span flex="70" style="height:50px; line-height: 50px;"> {{devices[editDeviceIndex].name}} </span>
 					<span flex="30" layout="row" layout-align="end center" style="height: 50px;">
 						<md-button style="width: 40px; height: 36px; margin: 0px;" aria-label="Close" ng-click="cancelEdit()" ng-disabled="loading">
 							<md-icon> close </md-icon>
@@ -292,6 +292,30 @@ module.exports = function(RED) {
 			if (!config.hasOwnProperty("height") || config.height == 0) config.height = 1;
 			if (!config.hasOwnProperty("name") || config.name === "") config.name = "Time-Scheduler";
 			if (!config.hasOwnProperty("devices") || config.devices.length === 0) config.devices = [config.name];
+
+			function normalizeDevicesConfig(devs, fallbackName) {
+				const arr = Array.isArray(devs) ? devs : [];
+				if (arr.length === 0) {
+					const base = (fallbackName || "Device 1").toString();
+					return [{ name: base, topic: base }];
+				}
+				return arr.map((d, i) => {
+					if (typeof d === "string") {
+						const s = (d || ("Device " + (i + 1))).toString();
+						return { name: s, topic: s };
+					}
+					if (d && typeof d === "object") {
+						const name = (d.name ?? d.label ?? d.device ?? "").toString() || ("Device " + (i + 1));
+						const topicRaw = (d.topic ?? d.sendTopic ?? "").toString();
+						const topic = topicRaw.trim() !== "" ? topicRaw : name;
+						return { name, topic };
+					}
+					const s = ("Device " + (i + 1));
+					return { name: s, topic: s };
+				});
+			}
+			config.devices = normalizeDevicesConfig(config.devices, config.name);
+
 			if (!config.hasOwnProperty("eventOptions")) config.eventOptions = [{ label: RED._("time-scheduler.label.on"), event: "true" }, { label: RED._("time-scheduler.label.off"), event: "false" }];
 			
 			// Customizable on/off commands (non-event mode)
@@ -452,7 +476,19 @@ module.exports = function(RED) {
 							$scope.nodeId = config.id;
 							$scope.i18n = config.i18n;
 							$scope.days = config.i18n.days;
-							$scope.devices = config.devices;
+							function normalizeDevicesForUi(devs){
+								const arr = Array.isArray(devs) ? devs : [];
+								return arr.map((d,i)=>{
+									if (typeof d === "string") return { name: d, topic: d };
+									if (d && typeof d === "object") {
+										const name = (d.name ?? d.label ?? d.device ?? "").toString() || ("Device " + (i+1));
+										const topicRaw = (d.topic ?? "").toString();
+										return { name, topic: (topicRaw.trim() !== "" ? topicRaw : name) };
+									}
+									return { name: "Device " + (i+1), topic: "Device " + (i+1) };
+								});
+							}
+							$scope.devices = normalizeDevicesForUi(config.devices);
 							$scope.eventMode = config.eventMode;
 							$scope.eventOptions = config.eventOptions;
 
@@ -973,9 +1009,25 @@ module.exports = function(RED) {
 					setSettings({ ...getSettings(), disabledDevices });
 				}
 
+
+				function resolveDeviceIndex(device) {
+					if (device === undefined || device === null) return -1;
+					if (typeof device === "number") return device;
+					if (typeof device === "string" && device.trim() !== "" && !isNaN(device)) return Number(device);
+					if (typeof device === "object") device = device.name ?? device.topic ?? "";
+					if (typeof device === "string") {
+						return config.devices.findIndex(d => {
+							if (!d) return false;
+							if (typeof d === "string") return d === device;
+							return d.name === device;
+						});
+					}
+					return -1;
+				}
+
 				function addDisabledDevice(device) {
 					const disabledDevices = getDisabledDevices();
-					const deviceIndex = (isNaN(device) ? config.devices.indexOf(device) : device).toString();
+					const deviceIndex = resolveDeviceIndex(device).toString();
 					if (deviceIndex >= 0 && config.devices.length > deviceIndex && !disabledDevices.includes(deviceIndex)) {
 						disabledDevices.push(deviceIndex);
 						setDisabledDevices(disabledDevices);
@@ -986,7 +1038,7 @@ module.exports = function(RED) {
 
 				function removeDisabledDevice(device) {
 					const disabledDevices = getDisabledDevices();
-					const deviceIndex = (isNaN(device) ? config.devices.indexOf(device) : device).toString();
+					const deviceIndex = resolveDeviceIndex(device).toString();
 					if (deviceIndex >= 0 && config.devices.length > deviceIndex && disabledDevices.includes(deviceIndex)) {
 						disabledDevices.splice(disabledDevices.indexOf(deviceIndex), 1);
 						setDisabledDevices(disabledDevices);
@@ -1010,6 +1062,23 @@ module.exports = function(RED) {
 					node.send(outputValues);
 				}
 
+
+				function getDeviceName(i) {
+					const d = config.devices[i];
+					if (d && typeof d === "object") return (d.name ?? "").toString();
+					return (d ?? "").toString();
+				}
+				function getDeviceTopic(i) {
+					const d = config.devices[i];
+					if (d && typeof d === "object") {
+						const t = (d.topic ?? "").toString();
+						if (t.trim() !== "") return t;
+						const n = (d.name ?? "").toString();
+						return n;
+					}
+					return (d ?? "").toString();
+				}
+
 				function addOutputValues(outputValues) {
 					for (let device = 0; device < config.devices.length; device++) {
 						let status = isInTime(device);
@@ -1020,7 +1089,7 @@ module.exports = function(RED) {
 							else payload = null;
 						}
 						const msg = { payload };
-						if (config.sendTopic) msg.topic = config.devices[device];
+						if (config.sendTopic) msg.topic = getDeviceTopic(device);
 						msg.payload != null ? outputValues.push(msg) : outputValues.push(null);
 					}
 					if (config.onlySendChange) removeUnchangedValues(outputValues);

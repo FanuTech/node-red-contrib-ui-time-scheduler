@@ -131,18 +131,18 @@ module.exports = function(RED) {
 					<div ng-show="!showSunSettings">
 						<div layout="row" layout-align="space-between none" style="max-height: 60px;">
 							<md-input-container flex="50" ng-show="formtimer.starttype === 'custom'" style="margin-left: 0">
-								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler-single.ui.starttime")}</label>
+								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler.ui.starttime")}</label>
 								<input id="timerStarttime-${uniqueId}" value="08:00" type="time" required pattern="^([0-1][0-9]|2[0-3]):([0-5][0-9])$">
 								<span class="validity"></span>
 							</md-input-container>
 							<md-input-container flex="50" ng-if="formtimer.starttype !== 'custom'" style="margin-left: 0">
-								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler-single.ui.starttime")}</label>
+								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler.ui.starttime")}</label>
 								<input ng-model="formtimer.solarStarttimeLabel" type="text" required disabled>
 								<span class="validity"></span>
 							</md-input-container>
 							${config.eventMode ? `
 							<md-input-container flex="">
-								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler-single.ui.event")}</label>
+								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler.ui.event")}</label>
 								${config.customPayload ? `
 								<input ng-model="formtimer.timerEvent" required autocomplete="off">
 								` : `
@@ -153,12 +153,12 @@ module.exports = function(RED) {
 							</md-input-container>
 							` : `
 							<md-input-container flex="50" ng-show="formtimer.endtype === 'custom'">
-								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler-single.ui.endtime")}</label>
+								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler.ui.endtime")}</label>
 								<input id="timerEndtime-${uniqueId}" value="10:00" type="time" required pattern="^([0-1][0-9]|2[0-3]):([0-5][0-9])$">
 								<span class="validity"></span>
 							</md-input-container>
 							<md-input-container flex="50" ng-if="formtimer.endtype !== 'custom'">
-								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler-single.ui.endtime")}</label>
+								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler.ui.endtime")}</label>
 								<input ng-model="formtimer.solarEndtimeLabel" type="text" required disabled> </input>
 								<span class="validity"></span>
 							</md-input-container>
@@ -166,9 +166,9 @@ module.exports = function(RED) {
 						</div>
 						<div layout="row" style="max-height: 50px;">
 							<md-input-container>
-								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler-single.ui.daysActive")}</label>
-								<md-select class="nr-dashboard-dropdown" multiple="true" placeholder="${RED._("time-scheduler-single.ui.daysActive")}" ng-model="formtimer.dayselect" ng-change="daysChanged()" >
-									<md-option value="all"><em>${RED._("time-scheduler-single.ui.selectAll")}</em></md-option>
+								<label style="color: var(--nr-dashboard-widgetTextColor)">${RED._("time-scheduler.ui.daysActive")}</label>
+								<md-select class="nr-dashboard-dropdown" multiple="true" placeholder="${RED._("time-scheduler.ui.daysActive")}" ng-model="formtimer.dayselect" ng-change="daysChanged()" >
+									<md-option value="all"><em>${RED._("time-scheduler.ui.selectAll")}</em></md-option>
 									<md-option ng-repeat="day in days | limitTo : ${config.startDay}-7" ng-init="$index=$index+${config.startDay}" value={{$index}}> {{days[$index]}} </md-option>
 									<md-option ng-repeat="day in days | limitTo : -${config.startDay}" value={{$index}}> {{days[$index]}} </md-option>
 								</md-select>
@@ -189,21 +189,21 @@ module.exports = function(RED) {
 							<md-input-container flex="55">
 								<label style="color: var(--nr-dashboard-widgetTextColor)">Starttype</label>
 								<md-select class="nr-dashboard-dropdown" ng-model="formtimer.starttype" ng-change="updateSolarLabels()">
-									<md-option value="custom" selected> ${RED._("time-scheduler-single.ui.custom")} </md-option>
-									<md-option value="sunrise"> ${RED._("time-scheduler-single.ui.sunrise")} </md-option>
-									<md-option value="sunriseEnd"> ${RED._("time-scheduler-single.ui.sunriseEnd")} </md-option>
-									<md-option value="goldenHourEnd"> ${RED._("time-scheduler-single.ui.goldenHourEnd")} </md-option>
-									<md-option value="solarNoon"> ${RED._("time-scheduler-single.ui.solarNoon")} </md-option>
-									<md-option value="goldenHour"> ${RED._("time-scheduler-single.ui.goldenHour")} </md-option>
-									<md-option value="sunsetStart"> ${RED._("time-scheduler-single.ui.sunsetStart")} </md-option>
-									<md-option value="sunset"> ${RED._("time-scheduler-single.ui.sunset")} </md-option>
-									<md-option value="dusk"> ${RED._("time-scheduler-single.ui.dusk")} </md-option>
-									<md-option value="nauticalDusk"> ${RED._("time-scheduler-single.ui.nauticalDusk")} </md-option>
-									<md-option value="night"> ${RED._("time-scheduler-single.ui.night")} </md-option>
-									<md-option value="nadir"> ${RED._("time-scheduler-single.ui.nadir")} </md-option>
-									<md-option value="nightEnd"> ${RED._("time-scheduler-single.ui.nightEnd")} </md-option>
-									<md-option value="nauticalDawn"> ${RED._("time-scheduler-single.ui.nauticalDawn")} </md-option>
-									<md-option value="dawn"> ${RED._("time-scheduler-single.ui.dawn")} </md-option>
+									<md-option value="custom" selected> ${RED._("time-scheduler.ui.custom")} </md-option>
+									<md-option value="sunrise"> ${RED._("time-scheduler.ui.sunrise")} </md-option>
+									<md-option value="sunriseEnd"> ${RED._("time-scheduler.ui.sunriseEnd")} </md-option>
+									<md-option value="goldenHourEnd"> ${RED._("time-scheduler.ui.goldenHourEnd")} </md-option>
+									<md-option value="solarNoon"> ${RED._("time-scheduler.ui.solarNoon")} </md-option>
+									<md-option value="goldenHour"> ${RED._("time-scheduler.ui.goldenHour")} </md-option>
+									<md-option value="sunsetStart"> ${RED._("time-scheduler.ui.sunsetStart")} </md-option>
+									<md-option value="sunset"> ${RED._("time-scheduler.ui.sunset")} </md-option>
+									<md-option value="dusk"> ${RED._("time-scheduler.ui.dusk")} </md-option>
+									<md-option value="nauticalDusk"> ${RED._("time-scheduler.ui.nauticalDusk")} </md-option>
+									<md-option value="night"> ${RED._("time-scheduler.ui.night")} </md-option>
+									<md-option value="nadir"> ${RED._("time-scheduler.ui.nadir")} </md-option>
+									<md-option value="nightEnd"> ${RED._("time-scheduler.ui.nightEnd")} </md-option>
+									<md-option value="nauticalDawn"> ${RED._("time-scheduler.ui.nauticalDawn")} </md-option>
+									<md-option value="dawn"> ${RED._("time-scheduler.ui.dawn")} </md-option>
 								</md-select>
 							</md-input-container>
 							<md-input-container flex="" ng-if="formtimer.starttype!='custom'">
@@ -215,21 +215,21 @@ module.exports = function(RED) {
 							<md-input-container flex="55" ng-if="!${config.eventMode}">
 								<label style="color: var(--nr-dashboard-widgetTextColor)">Endtype</label>
 								<md-select class="nr-dashboard-dropdown" ng-model="formtimer.endtype" ng-change="updateSolarLabels()">
-									<md-option value="custom" selected> ${RED._("time-scheduler-single.ui.custom")} </md-option>
-									<md-option value="sunrise"> ${RED._("time-scheduler-single.ui.sunrise")} </md-option>
-									<md-option value="sunriseEnd"> ${RED._("time-scheduler-single.ui.sunriseEnd")} </md-option>
-									<md-option value="goldenHourEnd"> ${RED._("time-scheduler-single.ui.goldenHourEnd")} </md-option>
-									<md-option value="solarNoon"> ${RED._("time-scheduler-single.ui.solarNoon")} </md-option>
-									<md-option value="goldenHour"> ${RED._("time-scheduler-single.ui.goldenHour")} </md-option>
-									<md-option value="sunsetStart"> ${RED._("time-scheduler-single.ui.sunsetStart")} </md-option>
-									<md-option value="sunset"> ${RED._("time-scheduler-single.ui.sunset")} </md-option>
-									<md-option value="dusk"> ${RED._("time-scheduler-single.ui.dusk")} </md-option>
-									<md-option value="nauticalDusk"> ${RED._("time-scheduler-single.ui.nauticalDusk")} </md-option>
-									<md-option value="night"> ${RED._("time-scheduler-single.ui.night")} </md-option>
-									<md-option value="nadir"> ${RED._("time-scheduler-single.ui.nadir")} </md-option>
-									<md-option value="nightEnd"> ${RED._("time-scheduler-single.ui.nightEnd")} </md-option>
-									<md-option value="nauticalDawn"> ${RED._("time-scheduler-single.ui.nauticalDawn")} </md-option>
-									<md-option value="dawn"> ${RED._("time-scheduler-single.ui.dawn")} </md-option>
+									<md-option value="custom" selected> ${RED._("time-scheduler.ui.custom")} </md-option>
+									<md-option value="sunrise"> ${RED._("time-scheduler.ui.sunrise")} </md-option>
+									<md-option value="sunriseEnd"> ${RED._("time-scheduler.ui.sunriseEnd")} </md-option>
+									<md-option value="goldenHourEnd"> ${RED._("time-scheduler.ui.goldenHourEnd")} </md-option>
+									<md-option value="solarNoon"> ${RED._("time-scheduler.ui.solarNoon")} </md-option>
+									<md-option value="goldenHour"> ${RED._("time-scheduler.ui.goldenHour")} </md-option>
+									<md-option value="sunsetStart"> ${RED._("time-scheduler.ui.sunsetStart")} </md-option>
+									<md-option value="sunset"> ${RED._("time-scheduler.ui.sunset")} </md-option>
+									<md-option value="dusk"> ${RED._("time-scheduler.ui.dusk")} </md-option>
+									<md-option value="nauticalDusk"> ${RED._("time-scheduler.ui.nauticalDusk")} </md-option>
+									<md-option value="night"> ${RED._("time-scheduler.ui.night")} </md-option>
+									<md-option value="nadir"> ${RED._("time-scheduler.ui.nadir")} </md-option>
+									<md-option value="nightEnd"> ${RED._("time-scheduler.ui.nightEnd")} </md-option>
+									<md-option value="nauticalDawn"> ${RED._("time-scheduler.ui.nauticalDawn")} </md-option>
+									<md-option value="dawn"> ${RED._("time-scheduler.ui.dawn")} </md-option>
 								</md-select>
 							</md-input-container>
 							<md-input-container flex="" ng-if="!${config.eventMode} && formtimer.endtype!='custom'">
@@ -254,11 +254,11 @@ module.exports = function(RED) {
 
 	function checkConfig(config, node) {
 		if (!config) {
-			node.error(RED._("ui_time_scheduler-single.error.no-config"));
+			node.error(RED._("ui_time_scheduler.error.no-config"));
 			return false;
 		}
 		if (!config.hasOwnProperty("group")) {
-			node.error(RED._("ui_time_scheduler-single.error.no-group"));
+			node.error(RED._("ui_time_scheduler.error.no-group"));
 			return false;
 		}
 		return true;
@@ -278,14 +278,14 @@ module.exports = function(RED) {
 			if (!config.hasOwnProperty("refresh")) config.refresh = 60;
 			if (!config.hasOwnProperty("startDay")) config.startDay = 0;
 			if (!config.hasOwnProperty("height") || config.height == 0) config.height = 1;
-			if (!config.hasOwnProperty("name") || config.name === "") config.name = "time-scheduler-single";
+			if (!config.hasOwnProperty("name") || config.name === "") config.name = "Time-Scheduler";
 			if (!config.hasOwnProperty("devices") || config.devices.length === 0) config.devices = [config.name];
 			if (!config.hasOwnProperty("deviceTimezones") || config.deviceTimezones.length === 0) {
 				config.deviceTimezones = config.devices.map(() => "PST");
 			}
-			if (!config.hasOwnProperty("eventOptions")) config.eventOptions = [{ label: RED._("time-scheduler-single.label.on"), event: "true" }, { label: RED._("time-scheduler-single.label.off"), event: "false" }];
+			if (!config.hasOwnProperty("eventOptions")) config.eventOptions = [{ label: RED._("time-scheduler.label.on"), event: "true" }, { label: RED._("time-scheduler.label.off"), event: "false" }];
 			// END check props
-			config.i18n = RED._("time-scheduler-single.ui", { returnObjects: true });
+			config.i18n = RED._("time-scheduler.ui", { returnObjects: true });
 			config.solarEventsEnabled = ((config.lat !== "" && isFinite(config.lat) && Math.abs(config.lat) <= 90) && (config.lon !== "" && isFinite(config.lon) && Math.abs(config.lon) <= 180)) ? true : false;
 
 			if (checkConfig(config, node)) {
@@ -304,13 +304,13 @@ module.exports = function(RED) {
 					beforeEmit: function(msg, value) {
 						if (msg.hasOwnProperty("disableDevice")) {
 							if (addDisabledDevice(msg.disableDevice)) {
-								node.status({ fill: "green", shape: "ring", text: msg.disableDevice + " " + RED._("time-scheduler-single.disabled") });
+								node.status({ fill: "green", shape: "ring", text: msg.disableDevice + " " + RED._("time-scheduler.disabled") });
 								msg.payload = serializeData();
 								node.send(msg);
 							}
 						} else if (msg.hasOwnProperty("enableDevice")) {
 							if (removeDisabledDevice(msg.enableDevice)) {
-								node.status({ fill: "green", shape: "dot", text: msg.enableDevice + " " + RED._("time-scheduler-single.enabled") });
+								node.status({ fill: "green", shape: "dot", text: msg.enableDevice + " " + RED._("time-scheduler.enabled") });
 								msg.payload = serializeData();
 								node.send(msg);
 							}
@@ -324,10 +324,10 @@ module.exports = function(RED) {
 
 								const parsedTimers = parsedInput.timers;
 								if (validateTimers(parsedTimers)) {
-									node.status({ fill: "green", shape: "dot", text: "time-scheduler-single.payloadReceived" });
+									node.status({ fill: "green", shape: "dot", text: "time-scheduler.payloadReceived" });
 									setTimers(parsedTimers.filter(timer => timer.output < config.devices.length));
 								} else {
-									node.status({ fill: "yellow", shape: "dot", text: "time-scheduler-single.invalidPayload" });
+									node.status({ fill: "yellow", shape: "dot", text: "time-scheduler.invalidPayload" });
 								}
 
 								if (parsedInput.settings) setSettings(parsedInput.settings);
@@ -752,7 +752,7 @@ module.exports = function(RED) {
 
 						$scope.getTimersFromServer = function() {
 							$.ajax({
-								url: "time-scheduler-single/getNode/" + $scope.nodeId, dataType: 'json',
+								url: "time-scheduler/getNode/" + $scope.nodeId, dataType: 'json',
 								beforeSend: function() {
 									$scope.loading = true;
 								},
@@ -781,7 +781,7 @@ module.exports = function(RED) {
 						node.status({});
 						timers = timers.filter(timer => timer.output < config.devices.length);
 					} else {
-						node.status({ fill: "green", shape: "dot", text: "time-scheduler-single.contextCreated" });
+						node.status({ fill: "green", shape: "dot", text: "time-scheduler.contextCreated" });
 						timers = [];
 					}
 					setTimers(timers);
@@ -1020,11 +1020,11 @@ module.exports = function(RED) {
 			console.log("TimeSchedulerNode:", error);
 		}
 	}
-	RED.nodes.registerType("ui_time_scheduler-single", TimeSchedulerNode);
+	RED.nodes.registerType("ui_time_scheduler_single", TimeSchedulerNode);
 
 	let uiPath = ((RED.settings.ui || {}).path);
 	if (uiPath == undefined) uiPath = 'ui';
-	let nodePath = '/' + uiPath + '/time-scheduler-single/getNode/:nodeId';
+	let nodePath = '/' + uiPath + '/time-scheduler/getNode/:nodeId';
 	nodePath = nodePath.replace(/\/+/g, '/');
 
 	RED.httpNode.get(nodePath, function(req, res) {

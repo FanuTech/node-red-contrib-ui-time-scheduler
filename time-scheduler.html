@@ -1,0 +1,138 @@
+<script type="text/x-red" data-template-name="ui_time_scheduler">
+    <div class="form-row" id="template-row-group">
+       <label for="node-input-group"><i class="fa fa-table"></i> Group</label>
+       <input type="text" id="node-input-group">
+    </div>
+    <div class="form-row" id="template-row-size">
+        <label><i class="fa fa-object-group"></i> Size</label>
+        <input type="hidden" id="node-input-width">
+        <input type="hidden" id="node-input-height">
+        <button class="editor-button" id="node-input-size"></button>
+    </div>
+    
+    <label for="form-row node-input-device-container-row"><i class="fa fa-plug"></i> Devices</label>
+    <div class="form-row node-input-device-container-row">
+        <ol id="node-input-device-container"></ol>
+        <div style="margin-top:5px; font-size:0.9em; color:#777;">
+            Note: Timezones and Schedules are configured in the Dashboard UI.
+        </div>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+    <div class="form-row" id="node-div-customContextStore">
+        <label for="node-input-customContextStore"><i class="fa fa-database"></i> Context</label>
+        <select id="node-input-customContextStore" style="width:70%"></select>
+    </div>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('ui_time_scheduler', {
+        category: 'dashboard',
+        color: 'rgb( 63, 173, 181)',
+        defaults: {
+            group: { type: 'ui_group', required: true },
+            name: { value: '' },
+            devices: { value: ["Device 1"] },
+            customContextStore: { value: '' },
+            width: {
+                value: 0,
+                validate: function(v) {
+                    let valid = true
+                    const width = v || 0;
+                    const currentGroup = $('#node-input-group').val() || this.group;
+                    const groupNode = RED.nodes.node(currentGroup);
+                    valid = !groupNode || +width <= +groupNode.width;
+                    $("#node-input-size").toggleClass("input-error", !valid);
+                    return valid;
+                }
+            },
+            height: { value: 0 },
+            outputs: { value: 1 }
+        },
+        inputs: 1,
+        outputs: 1, // Will be dynamically updated based on devices
+        icon: "calendar.png",
+        paletteLabel: "ui scheduler",
+        label: function() { return this.name || "ui scheduler"; },
+        oneditprepare: function() {
+            const node = this;
+
+            $("#node-input-size").elementSizer({
+                width: "#node-input-width",
+                height: "#node-input-height",
+                group: "#node-input-group"
+            });
+
+            // Context Store Selection
+            if (RED.settings.context && RED.settings.context.stores && RED.settings.context.stores.length > 1) {
+                for (let i = 0; i < RED.settings.context.stores.length; i++) {
+                    const value = RED.settings.context.stores[i];
+                    $('#node-input-customContextStore').append(new Option(value, value));
+                }
+                if (this.customContextStore && RED.settings.context.stores.includes(this.customContextStore)) {
+                    $('#node-input-customContextStore').val(this.customContextStore);
+                }
+            } else {
+                $('#node-div-customContextStore').hide();
+            }
+
+            // Device List Editor
+            $("#node-input-device-container").css('min-height', '165px').editableList({
+                addItem: function(row, index, data) {
+                    const current = "Device " + (index + 1);
+                    const label = $('<span/>', { class: "node-input-device-label", text: " " + current });
+                    $(row).html(label);
+
+                    const nameInput = $('<input/>', { class: "node-input-device-name", type: "text", style: "margin-left:7px; width:calc(75% - 32px);", value: data.name || current });
+                    nameInput.appendTo(row).typedInput({ default: 'str', types: ['str'] });
+
+                    const finalspan = $('<span/>', { style: "float: right;margin-top: 6px;" }).appendTo(row);
+                    finalspan.append(' &#8594; <span class="node-input-device-index">' + (index + 1) + '</span> ');
+                },
+                removeItem: function(opt) {
+                   // re-index logic if needed
+                   updateLabels();
+                },
+                sortItems: function(rules) {
+                   updateLabels();
+                },
+                removable: true,
+                sortable: true
+            });
+
+            function updateLabels() {
+                const devices = $("#node-input-device-container").editableList('items');
+                devices.each(function(i) {
+                    $(this).find(".node-input-device-index").html(i + 1);
+                });
+            }
+
+            // Load existing devices
+            if (!this.devices) {
+                $("#node-input-device-container").editableList('addItem', { name: "Device 1" });
+            } else {
+                for (let i = 0; i < this.devices.length; i++) {
+                    $("#node-input-device-container").editableList('addItem', { name: this.devices[i] });
+                }
+            }
+        },
+        oneditsave: function() {
+            const node = this;
+            node.devices = [];
+            const devices = $("#node-input-device-container").editableList('items');
+            devices.each(function(i) {
+                let deviceName = $(this).find(".node-input-device-name").typedInput('value');
+                if(!deviceName) deviceName = "Device " + (i+1);
+                node.devices.push(deviceName);
+            });
+            // Update output count: 1 msg per device + 1 for start (so index 1 is device 0) 
+            // Actually, Node-RED outputs are usually array [msg, msg, msg]. 
+            // To make it map cleanly to output pins: Pin 1 = Device 1, Pin 2 = Device 2.
+            // The code sends [null, msg1, msg2]. So we need devices.length + 1 outputs.
+            node.outputs = node.devices.length + 1;
+        }
+    });
+</script>

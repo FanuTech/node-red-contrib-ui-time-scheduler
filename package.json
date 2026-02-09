@@ -1,11 +1,11 @@
 {
-  "name": "node-red-contrib-ui-time-scheduler-single",
+  "name": "node-red-contrib-ui-time-scheduler",
   "version": "1.17.2",
   "description": "A ui time scheduler for the Node-RED Dashboard",
   "dependencies": {
     "suncalc": "^1.9.0"
   },
-  "main": "time-scheduler-single.js",
+  "main": "time-scheduler.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -14,7 +14,7 @@
   "node-red": {
     "version": ">=0.19.6",
     "nodes": {
-      "time_scheduler-single": "time-scheduler-single.js"
+      "time_scheduler": "time-scheduler.js"
     }
   },
   "engines": {

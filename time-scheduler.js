@@ -137,10 +137,7 @@ module.exports = function(RED) {
 						</div>
 					<md-list>
 				</div>
-				<div ng-if="timers.length == 0">
-					<p> ${RED._("time-scheduler.ui.emptyOverview")} <p>
-				</div>
-				<div ng-if="timers.length != 0 && getTimersByOverviewFilter().length == 0">
+<div ng-if="timers.length != 0 && getTimersByOverviewFilter().length == 0">
 					<p> ${RED._("time-scheduler.ui.noActiveOverview")} <p>
 				</div>
 			</div>
@@ -358,33 +355,14 @@ module.exports = function(RED) {
 					},
 					beforeSend: function(msg, orig) {
 						node.status({});
-						// In node-red-dashboard (Dashboard 1 / Angular), orig.msg is typically a single message object
-						// coming from the browser. Older/other versions may provide an array - handle both.
-						const incoming = (orig && orig.msg !== undefined) ? orig.msg : msg;
-						if (!incoming) return;
-
-						// If incoming is an array (multi-output), use element 0 as the primary message
-						if (Array.isArray(incoming)) {
-							if (incoming[0] && incoming[0].payload && typeof incoming[0].payload === "object") {
-								if (Array.isArray(incoming[0].payload.timers)) setTimers(incoming[0].payload.timers);
-								if (incoming[0].payload.settings) setSettings(incoming[0].payload.settings);
-							}
-							const sendMsg = JSON.parse(JSON.stringify(incoming));
+						if (orig && orig.msg[0]) {
+							setTimers(orig.msg[0].payload.timers);
+							setSettings(orig.msg[0].payload.settings);
+							const sendMsg = JSON.parse(JSON.stringify(orig.msg));
 							sendMsg[0].payload = serializeData();
 							addOutputValues(sendMsg);
 							return sendMsg;
 						}
-
-						// Normal case: incoming is a single message object
-						if (incoming.payload && typeof incoming.payload === "object") {
-							if (Array.isArray(incoming.payload.timers)) setTimers(incoming.payload.timers);
-							if (incoming.payload.settings) setSettings(incoming.payload.settings);
-						}
-
-						const sendMsg = [JSON.parse(JSON.stringify(incoming))];
-						sendMsg[0].payload = serializeData();
-						addOutputValues(sendMsg);
-						return sendMsg;
 					},
 					initController: function($scope) {
 						// Timezone offset helper (in hours from PST)
@@ -397,9 +375,8 @@ module.exports = function(RED) {
 						};
 						
 						$scope.getDeviceTimezone = function(deviceIndex) {
-							// deviceTimezones is set in init(config)
-							return ($scope.deviceTimezones && $scope.deviceTimezones[deviceIndex])
-								? $scope.deviceTimezones[deviceIndex]
+							return config.deviceTimezones && config.deviceTimezones[deviceIndex] 
+								? config.deviceTimezones[deviceIndex] 
 								: "PST";
 						};
 						
@@ -503,11 +480,11 @@ module.exports = function(RED) {
 							if (timerIndex === undefined) {
 								const today = new Date();
 								if (today.getHours() == "23" && today.getMinutes() >= "54") today.setMinutes(53);
-								const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), today.getHours(), today.getMinutes() + 1, 0);
+								const start = new Date(today.getFullYear(), today.getMonth(), today.getDay(), today.getHours(), today.getMinutes() + 1, 0);
 								$scope.getElement("timerStarttime").value = $scope.formatTime(start.getHours(), start.getMinutes());
 								if ($scope.eventMode) $scope.formtimer.timerEvent = $scope.eventOptions.length > 0 ? $scope.eventOptions[0].event : "true";
 								else {
-									const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), today.getHours(), today.getMinutes() + 6, 0);
+									const end = new Date(today.getFullYear(), today.getMonth(), today.getDay(), today.getHours(), today.getMinutes() + 6, 0);
 									$scope.getElement("timerEndtime").value = $scope.formatTime(end.getHours(), end.getMinutes());
 								}
 								$scope.formtimer.dayselect.push(today.getDay());
@@ -517,7 +494,7 @@ module.exports = function(RED) {
 								if (timer.hasOwnProperty("startSolarEvent")) $scope.formtimer.starttype = timer.startSolarEvent;
 								if (timer.hasOwnProperty("startSolarOffset")) $scope.formtimer.startOffset = timer.startSolarOffset;
 								if (timer.hasOwnProperty("endSolarEvent")) $scope.formtimer.endtype = timer.endSolarEvent;
-								if (timer.hasOwnProperty("endSolarOffset")) $scope.formtimer.endOffset = timer.endSolarOffset;
+								if (timer.hasOwnProperty("startSolarOffset")) $scope.formtimer.endOffset = timer.endSolarOffset;
 								$scope.updateSolarLabels();
 								
 								// Convert stored PST time to device timezone for display
@@ -768,22 +745,18 @@ module.exports = function(RED) {
 						}
 
 						$scope.toggleDeviceStatus = function(deviceIndex) {
-							const idx = deviceIndex.toString();
-							$scope.disabledDevices = ($scope.disabledDevices || []).map(d => d.toString());
-
 							if ($scope.isDeviceEnabled(deviceIndex)) {
-								if (!$scope.disabledDevices.includes(idx)) $scope.disabledDevices.push(idx);
+								$scope.disabledDevices = $scope.disabledDevices || [];
+								$scope.disabledDevices.push(deviceIndex);
 							} else {
-								const pos = $scope.disabledDevices.indexOf(idx);
-								if (pos !== -1) $scope.disabledDevices.splice(pos, 1);
+								$scope.disabledDevices.splice($scope.disabledDevices.indexOf(deviceIndex), 1);
 							}
 							$scope.sendTimersToOutput();
 						}
 
 						$scope.isDeviceEnabled = function(deviceIndex) {
-							const idx = deviceIndex.toString();
-							const disabledDevices = ($scope.disabledDevices || []).map(d => d.toString());
-							return !disabledDevices.includes(idx);
+							const disabledDevices = $scope.disabledDevices || [];
+							return !disabledDevices.includes(deviceIndex.toString());
 						}
 
 						$scope.getTimersFromServer = function() {

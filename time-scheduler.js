@@ -125,9 +125,6 @@ module.exports = function(RED) {
 						</div>
 					<md-list>
 				</div>
-				<div ng-if="timers.length == 0">
-					<p> ${RED._("time-scheduler.ui.emptyOverview")} <p>
-				</div>
 </div>
 			<div id="addTimerView-${uniqueId}" style="display:none; position: relative;">
 				<div style="width: 100%; position: absolute;">

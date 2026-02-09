@@ -82,7 +82,7 @@ module.exports = function(RED) {
 			/* Column alignment for device rows */
 			#${divPrimary} .ts-row {
 				display: grid;
-				grid-template-columns: minmax(200px, 1fr) 120px 240px 112px;
+				grid-template-columns: minmax(200px, 1fr) 120px 240px 124px;
 				column-gap: 10px;
 				align-items: center;
 				width: 100%;
@@ -111,11 +111,17 @@ module.exports = function(RED) {
 				text-overflow: ellipsis;
 				white-space: nowrap;
 			}
-			#${divPrimary} #${divPrimary} .ts-actions {
+			#${divPrimary} .ts-actions {
 				justify-self: end;
 				display: flex;
+				flex-direction: row;
+				flex-wrap: nowrap;
+				white-space: nowrap;
 				align-items: center;
+				justify-content: flex-end;
 				gap: 8px;
+				min-width: 0;
+				overflow: hidden;
 			}
 			#${divPrimary} .ts-actions md-button.ts-action-btn {
 				margin: 0 !important;
@@ -123,10 +129,19 @@ module.exports = function(RED) {
 				width: 36px !important;
 				height: 36px !important;
 				padding: 0 !important;
+				display: inline-flex !important;
+				align-items: center;
+				justify-content: center;
+				flex: 0 0 auto;
+			}
+			#${divPrimary} .ts-actions md-icon {
+				line-height: 24px;
+				width: 24px;
+				height: 24px;
 			}
 			@media (max-width: 600px) {
 				#${divPrimary} .ts-row {
-					grid-template-columns: minmax(160px, 1fr) 105px 190px 104px;
+					grid-template-columns: minmax(160px, 1fr) 105px 190px 116px;
 					column-gap: 6px;
 				}
 				#${divPrimary} .ts-tz md-input-container { width: 100px !important; }

@@ -293,7 +293,13 @@ module.exports = function(RED) {
 			if (!config.hasOwnProperty("name") || config.name === "") config.name = "Time-Scheduler";
 			if (!config.hasOwnProperty("devices") || config.devices.length === 0) config.devices = [config.name];
 			if (!config.hasOwnProperty("eventOptions")) config.eventOptions = [{ label: RED._("time-scheduler.label.on"), event: "true" }, { label: RED._("time-scheduler.label.off"), event: "false" }];
-			// END check props
+			
+			// Customizable on/off commands (non-event mode)
+			if (!config.hasOwnProperty("onPayload")) config.onPayload = "true";
+			if (!config.hasOwnProperty("onPayloadType")) config.onPayloadType = "bool";
+			if (!config.hasOwnProperty("offPayload")) config.offPayload = "false";
+			if (!config.hasOwnProperty("offPayloadType")) config.offPayloadType = "bool";
+// END check props
 			config.i18n = RED._("time-scheduler.ui", { returnObjects: true });
 			config.solarEventsEnabled = ((config.lat !== "" && isFinite(config.lat) && Math.abs(config.lat) <= 90) && (config.lon !== "" && isFinite(config.lon) && Math.abs(config.lon) <= 180)) ? true : false;
 
@@ -759,7 +765,39 @@ module.exports = function(RED) {
 				});
 
 				let nodeInterval;
-				let prevMsg = [];
+				let prevPayloadFp = [];
+
+
+				function parseTypedValue(value, type) {
+					const t = (type || "str").toString();
+					if (t === "num") return Number(value);
+					if (t === "bool") return (value === true || value === "true" || value === 1 || value === "1");
+					if (t === "json") {
+						if (value === "" || value === undefined || value === null) return {};
+						try { return JSON.parse(value); } catch (e) { node.warn("Invalid JSON for on/off payload: " + e.toString()); return value; }
+					}
+					return (value !== undefined && value !== null) ? value : "";
+				}
+
+				function clonePayload(v) {
+					if (v && typeof v === "object") {
+						try { return JSON.parse(JSON.stringify(v)); } catch (e) { return v; }
+					}
+					return v;
+				}
+
+				function payloadFingerprint(v) {
+					if (v === undefined) return "u";
+					if (v === null) return "n";
+					const t = typeof v;
+					if (t === "object") {
+						try { return "o:" + JSON.stringify(v); } catch (e) { return "o:[unstringifiable]"; }
+					}
+					return t + ":" + String(v);
+				}
+
+				const onCommandValue = parseTypedValue(config.onPayload, config.onPayloadType);
+				const offCommandValue = parseTypedValue(config.offPayload, config.offPayloadType);
 
 				(() => {
 					let timers = normalizeTimers(getContextValue('timers'));
@@ -974,7 +1012,14 @@ module.exports = function(RED) {
 
 				function addOutputValues(outputValues) {
 					for (let device = 0; device < config.devices.length; device++) {
-						const msg = { payload: isInTime(device) };
+						let status = isInTime(device);
+						let payload = status;
+						if (!config.eventMode) {
+							if (status === true) payload = clonePayload(onCommandValue);
+							else if (status === false) payload = clonePayload(offCommandValue);
+							else payload = null;
+						}
+						const msg = { payload };
 						if (config.sendTopic) msg.topic = config.devices[device];
 						msg.payload != null ? outputValues.push(msg) : outputValues.push(null);
 					}
@@ -982,14 +1027,17 @@ module.exports = function(RED) {
 				}
 
 				function removeUnchangedValues(outputValues) {
-					const currMsg = JSON.parse(JSON.stringify(outputValues));
-					for (let i = 1; i <= config.devices.length; i++) {
-						if (prevMsg[i] && currMsg[i] && (prevMsg[i].payload === currMsg[i].payload)) {
-							outputValues[i] = null;
+						const currFp = [];
+						for (let i = 1; i <= config.devices.length; i++) {
+							const curr = outputValues[i];
+							const fp = curr ? payloadFingerprint(curr.payload) : null;
+							currFp[i] = fp;
+							if (curr && prevPayloadFp[i] && prevPayloadFp[i] === fp) {
+								outputValues[i] = null;
+							}
 						}
+						prevPayloadFp = currFp;
 					}
-					prevMsg = currMsg;
-				}
 
 								function isInTime(deviceIndex) {
 					const nodeTimers = getTimers();

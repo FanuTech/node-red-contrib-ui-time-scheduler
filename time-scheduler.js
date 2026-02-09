@@ -323,6 +323,9 @@ module.exports = function(RED) {
 			if (!config.hasOwnProperty("onPayloadType")) config.onPayloadType = "bool";
 			if (!config.hasOwnProperty("offPayload")) config.offPayload = "false";
 			if (!config.hasOwnProperty("offPayloadType")) config.offPayloadType = "bool";
+            // Customizable message property names for device outputs
+            if (!config.hasOwnProperty("nameProperty") || config.nameProperty === "") config.nameProperty = "topic";
+            if (!config.hasOwnProperty("actionProperty") || config.actionProperty === "") config.actionProperty = "payload";
 // END check props
 			config.i18n = RED._("time-scheduler.ui", { returnObjects: true });
 			config.solarEventsEnabled = ((config.lat !== "" && isFinite(config.lat) && Math.abs(config.lat) <= 90) && (config.lon !== "" && isFinite(config.lon) && Math.abs(config.lon) <= 180)) ? true : false;
@@ -493,10 +496,10 @@ module.exports = function(RED) {
 							$scope.eventOptions = config.eventOptions;
 
 							$scope.tzOptions = [
-								{ label: "PST (PT)", value: "PT" },
-								{ label: "MST (MT)", value: "MT" },
-								{ label: "CST (CT)", value: "CT" },
-								{ label: "EST (ET)", value: "ET" }
+								{ label: "PT", value: "PT" },
+								{ label: "MT", value: "MT" },
+								{ label: "CT", value: "CT" },
+								{ label: "ET", value: "ET" }
 							];
 
 							$scope.timers = [];
@@ -1079,34 +1082,72 @@ module.exports = function(RED) {
 					return (d ?? "").toString();
 				}
 
+				function normalizeMsgProp(p, fallback) {
+					if (p === undefined || p === null) return fallback;
+					let s = String(p).trim();
+					if (!s) return fallback;
+					if (s.startsWith("msg.")) s = s.slice(4);
+					return s || fallback;
+				}
+
+				// Device-output message property names (e.g. msg.vmName / msg.actionId)
+				const nameProp = normalizeMsgProp(config.nameProperty, "topic");
+				const actionProp = normalizeMsgProp(config.actionProperty, "payload");
+
+				function setMsgProp(msg, prop, value) {
+					try {
+						RED.util.setMessageProperty(msg, prop, value, true);
+					} catch (e) {
+						msg[prop] = value;
+					}
+				}
+
+				function getMsgProp(msg, prop) {
+					try {
+						return RED.util.getMessageProperty(msg, prop);
+					} catch (e) {
+						return msg ? msg[prop] : undefined;
+					}
+				}
+
 				function addOutputValues(outputValues) {
 					for (let device = 0; device < config.devices.length; device++) {
 						let status = isInTime(device);
 						let payload = status;
+
 						if (!config.eventMode) {
 							if (status === true) payload = clonePayload(onCommandValue);
 							else if (status === false) payload = clonePayload(offCommandValue);
 							else payload = null;
 						}
-						const msg = { payload };
-						if (config.sendTopic) msg.topic = getDeviceTopic(device);
-						msg.payload != null ? outputValues.push(msg) : outputValues.push(null);
+
+						if (payload === null || payload === undefined) {
+							outputValues.push(null);
+							continue;
+						}
+
+						const msg = {};
+						setMsgProp(msg, actionProp, payload);
+						if (config.sendTopic) setMsgProp(msg, nameProp, getDeviceTopic(device));
+						outputValues.push(msg);
 					}
+
 					if (config.onlySendChange) removeUnchangedValues(outputValues);
 				}
 
 				function removeUnchangedValues(outputValues) {
-						const currFp = [];
-						for (let i = 1; i <= config.devices.length; i++) {
-							const curr = outputValues[i];
-							const fp = curr ? payloadFingerprint(curr.payload) : null;
-							currFp[i] = fp;
-							if (curr && prevPayloadFp[i] && prevPayloadFp[i] === fp) {
-								outputValues[i] = null;
-							}
+					const currFp = [];
+					for (let i = 1; i <= config.devices.length; i++) {
+						const curr = outputValues[i];
+						const v = curr ? getMsgProp(curr, actionProp) : null;
+						const fp = curr ? payloadFingerprint(v) : null;
+						currFp[i] = fp;
+						if (curr && prevPayloadFp[i] && prevPayloadFp[i] === fp) {
+							outputValues[i] = null;
 						}
-						prevPayloadFp = currFp;
 					}
+					prevPayloadFp = currFp;
+				}
 
 								function isInTime(deviceIndex) {
 					const nodeTimers = getTimers();

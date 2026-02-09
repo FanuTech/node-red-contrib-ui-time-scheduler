@@ -95,6 +95,16 @@ SOFTWARE.
         <span data-i18n="time-scheduler.topicDesc"></span>
     </div>
     <div class="form-row">
+        <label for="node-input-nameProperty"><i class="fa fa-tag"></i> Device name field</label>
+        <input type="text" id="node-input-nameProperty" style="width:25%;" placeholder="topic">
+        <span style="margin-left:6px; opacity:0.8;">(e.g. vmName)</span>
+    </div>
+    <div class="form-row">
+        <label for="node-input-actionProperty"><i class="fa fa-tag"></i> Action field</label>
+        <input type="text" id="node-input-actionProperty" style="width:25%;" placeholder="payload">
+        <span style="margin-left:6px; opacity:0.8;">(e.g. actionId)</span>
+    </div>
+    <div class="form-row">
 		<label for="node-input-lat"><i class="fa fa-globe"></i> <span data-i18n="time-scheduler.label.latitude"></span> </label>
 		<input type="number" id="node-input-lat" min="-90" max="90" step="any" placeholder="48.3069" style="width:25%; margin-right: 6px;">
 		<label for="node-input-lon"><i class="fa fa-globe"></i> <span data-i18n="time-scheduler.label.longitude"></span> </label>
@@ -126,6 +136,8 @@ SOFTWARE.
             eventMode: { value: false },
             eventOptions: { value: [{ label: "On", event: "true" }, { label: "Off", event: "false" }] },
             sendTopic: { value: false },
+            nameProperty: { value: "topic" },
+            actionProperty: { value: "payload" },
             onPayload: { value: "true" },
             onPayloadType: { value: "bool" },
             offPayload: { value: "false" },

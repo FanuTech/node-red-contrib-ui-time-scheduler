@@ -82,7 +82,7 @@ module.exports = function(RED) {
 			/* Column alignment for device rows */
 			#${divPrimary} .ts-row {
 				display: grid;
-				grid-template-columns: minmax(200px, 1fr) 120px 240px 96px;
+				grid-template-columns: minmax(200px, 1fr) 120px 240px 124px;
 				column-gap: 10px;
 				align-items: center;
 				width: 100%;
@@ -114,14 +114,46 @@ module.exports = function(RED) {
 			#${divPrimary} .ts-actions {
 				justify-self: end;
 				display: flex;
+				flex-direction: row;
+				flex-wrap: nowrap;
+				white-space: nowrap;
 				align-items: center;
+				justify-content: flex-end;
+				gap: 8px;
+				min-width: 0;
+				overflow: hidden;
 			}
-			#${divPrimary} .ts-actions md-button {
-				margin: 0 0 0 4px !important;
+			#${divPrimary} .ts-actions md-button.ts-action-btn {
+				margin: 0 !important;
+				min-width: 36px !important;
+				width: 36px !important;
+				height: 36px !important;
+				padding: 0 !important;
+				display: inline-flex !important;
+				align-items: center;
+				justify-content: center;
+				flex: 0 0 auto;
+				/* Make icon buttons square */
+				border-radius: 0 !important;
+			}
+			#${divPrimary} .ts-actions md-button.ts-action-btn .md-button-inner {
+				display: flex !important;
+				align-items: center !important;
+				justify-content: center !important;
+				width: 100% !important;
+				height: 100% !important;
+			}
+			#${divPrimary} .ts-actions md-button.ts-action-btn md-icon {
+				display: flex !important;
+				align-items: center !important;
+				justify-content: center !important;
+				line-height: 1 !important;
+				width: 24px;
+				height: 24px;
 			}
 			@media (max-width: 600px) {
 				#${divPrimary} .ts-row {
-					grid-template-columns: minmax(160px, 1fr) 105px 190px 96px;
+					grid-template-columns: minmax(160px, 1fr) 105px 190px 116px;
 					column-gap: 6px;
 				}
 				#${divPrimary} .ts-tz md-input-container { width: 100px !important; }
@@ -160,11 +192,11 @@ module.exports = function(RED) {
 								</div>
 
 								<div class="ts-actions">
-									<md-button style="width: 40px; height: 36px;" aria-label="device enabled" ng-click="toggleDeviceStatus($index)" ng-disabled="isEditMode">
-										<md-icon> {{isDeviceEnabled($index) ? "alarm_on" : "alarm_off"}} </md-icon>
+									<md-button class="md-icon-button ts-action-btn" aria-label="device enabled" ng-click="toggleDeviceStatus($index)" ng-disabled="isEditMode">
+										<md-icon>{{isDeviceEnabled($index) ? "alarm_on" : "alarm_off"}}</md-icon>
 									</md-button>
-									<md-button style="width: 40px; height: 36px;" aria-label="edit schedule" ng-click="editDevice($index)" ng-disabled="loading">
-										<md-icon> edit </md-icon>
+									<md-button class="md-icon-button ts-action-btn" aria-label="edit schedule" ng-click="editDevice($index)" ng-disabled="loading">
+										<md-icon>edit</md-icon>
 									</md-button>
 								</div>
 							</div>
@@ -178,8 +210,8 @@ module.exports = function(RED) {
 				<div layout="row" layout-align="space-between center" style="max-height: 50px;">
 					<span flex="70" style="height:50px; line-height: 50px;"> {{devices[editDeviceIndex].name}} </span>
 					<span flex="30" layout="row" layout-align="end center" style="height: 50px;">
-						<md-button style="width: 40px; height: 36px; margin: 0px;" aria-label="Close" ng-click="cancelEdit()" ng-disabled="loading">
-							<md-icon> close </md-icon>
+						<md-button class="md-icon-button ts-action-btn" aria-label="Close" style="margin:0;" ng-click="cancelEdit()" ng-disabled="loading">
+							<md-icon>close</md-icon>
 						</md-button>
 					</span>
 				</div>
@@ -484,7 +516,8 @@ module.exports = function(RED) {
 							const minute = parseInt(partObj.minute || "0", 10);
 							const weekday = partObj.weekday || "Sun";
 							const wdMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-							return { day: wdMap[weekday] ?? 0, hour, minute };
+							const minutes = (hour * 60) + minute;
+							return { day: wdMap[weekday] ?? 0, hour, minute, minutes };
 						}
 
 						function ensureSingleSchedulePerDevice(timers) {
@@ -854,6 +887,7 @@ module.exports = function(RED) {
 
 				let nodeInterval;
 				let prevPayloadFp = [];
+				let prevInSpan = [];
 
 
 				function parseTypedValue(value, type) {
@@ -1165,9 +1199,21 @@ module.exports = function(RED) {
 						let payload = status;
 
 						if (!config.eventMode) {
-							if (status === true) payload = clonePayload(onCommandValue);
-							else if (status === false) payload = clonePayload(offCommandValue);
-							else payload = null;
+							if (status === true) {
+								payload = clonePayload(onCommandValue);
+								prevInSpan[device] = true;
+							} else if (status === false) {
+								// If singleOff is enabled, only send the OFF command once when transitioning from ON -> OFF
+								if (config.singleOff && !config.onlySendChange) {
+									payload = (prevInSpan[device] === true) ? clonePayload(offCommandValue) : null;
+								} else {
+									payload = clonePayload(offCommandValue);
+								}
+								prevInSpan[device] = false;
+							} else {
+								payload = null;
+								prevInSpan[device] = null;
+							}
 						}
 
 						if (payload === null || payload === undefined) {
@@ -1201,6 +1247,7 @@ module.exports = function(RED) {
 								function isInTime(deviceIndex) {
 					const nodeTimers = getTimers();
 					let status = null;
+					let hasSchedule = false;
 
 					if (nodeTimers.length > 0 && !getDisabledDevices().includes(deviceIndex.toString())) {
 						const tz = getDeviceTimezoneIana(deviceIndex);
@@ -1210,19 +1257,20 @@ module.exports = function(RED) {
 						const nowMin = now.minutes;
 
 						nodeTimers.filter(timer => timer.output == deviceIndex.toString()).forEach(function(timer) {
-							if (status != null) return;
 							if (timer.hasOwnProperty("disabled")) return;
 							if (!timer.days || timer.days.length !== 7) return;
+							hasSchedule = true;
 
 							const startMin = (timer.startMinutes ?? 0);
 
 							if (config.eventMode) {
 								if (timer.days[today] !== 1) return;
-								if (nowMin === startMin) {
-									status = timer.event;
-								}
+								if (nowMin === startMin) status = timer.event;
 								return;
 							}
+
+							// span mode
+							if (status === true) return;
 
 							const endMin = (timer.endMinutes ?? 0);
 
@@ -1242,15 +1290,16 @@ module.exports = function(RED) {
 						});
 					}
 
-					if (!config.eventMode && !config.singleOff && status == null) status = false;
-					return status;
+					if (config.eventMode) return status;
+
+					// No schedule configured for this device
+					if (!hasSchedule) return config.singleOff ? null : false;
+
+					// If we have a schedule, return explicit ON/OFF state
+					return status === true ? true : false;
 				}
 
-				
-
-
-
-								function updateSolarEvents(timers) {
+				function updateSolarEvents(timers) {
 					if (config.solarEventsEnabled) {
 						const sunTimes = sunCalc.getTimes(new Date(), config.lat, config.lon);
 						return timers.map(t => {
